@@ -46,6 +46,7 @@ if (OpenCV_FOUND)
   add_library(${PROJECT_NAME} SHARED ${SRCS})
   add_library(${PROJECT_NAME}_static STATIC ${SRCS})
   target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES})
+  target_link_libraries(${PROJECT_NAME}_static ${OpenCV_LIBRARIES})
 
   target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
   

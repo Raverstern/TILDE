@@ -80,8 +80,10 @@ vector<KeyPoint> testAndDump(const Mat &I,const string &pathFilter, const int &n
 		double minVal, maxVal;
 		minMaxLoc(*score, &minVal, &maxVal);
 		double range = maxVal;
-		*score = (*score) / range;
-		cv::imwrite(buf,*score*255);
+		*score = (*score) / range * 255;
+		Mat temp;
+		score->convertTo(temp, CV_8U);
+		cv::imwrite(buf,temp);
 	}	
 
 	return res;	
