@@ -1,39 +1,3 @@
-// libTILDE.hpp --- 
-// 
-// Filename: libTILDE.hpp
-// Description: 
-// Author: Yannick Verdie, Kwang Moo Yi, Alberto Crivella
-// Maintainer: Yannick Verdie, Kwang Moo Yi
-// Created: Tue Mar  3 17:54:26 2015 (+0100)
-// Version: 0.5a
-// Package-Requires: ()
-// Last-Updated: Thu May 28 13:17:42 2015 (+0200)
-//           By: Kwang
-//     Update #: 36
-// URL: 
-// Doc URL: 
-// Keywords: 
-// Compatibility: 
-// 
-// 
-
-// Commentary: 
-// 
-// 
-// 
-// 
-
-// Change Log:
-// 
-// 
-// 
-// 
-// Copyright (C), EPFL Computer Vision Lab.
-// 
-// 
-
-// Code:
-
 #pragma once
 #ifndef _LIBTILDE_HPP_
 #define _LIBTILDE_HPP_
