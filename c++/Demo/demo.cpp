@@ -64,10 +64,18 @@ vector<KeyPoint> testAndDump(const Mat &I,const string &pathFilter, const int &n
     return res; 
 }
 
-/* 
- * fast version of TILDE extraction (without the option of approximation)
- */
+/* fast version of TILDE extraction (without the option of approximation) */
 vector<KeyPoint> test_fast(const Mat &I,const string &pathFilter, const int &nbTest = 1, Mat* score = NULL)
+/* 
+ * input:
+ * I: image
+ * pathFilter: path of the filter file
+ * nbTest: # of tests, for measuring average runtime
+ *
+ * output:
+ * vector<cv::Keypoint>: a set of TILDE feature points
+ * score: score map
+ */
 {
     using namespace std::chrono;
     using namespace cv;
@@ -92,7 +100,7 @@ vector<KeyPoint> test_fast(const Mat &I,const string &pathFilter, const int &nbT
 
 
     std::vector<KeyPoint> res;
-    //keep only the 100 best
+    //keep only the 100 best (100? or 500?)
     std::copy(kps.begin(),kps.begin()+min<int>(kps.size(),500),back_inserter(res)); 
 
     return res; 

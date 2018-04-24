@@ -1,42 +1,6 @@
-// NonMaxSup.cpp --- 
-// 
-// Filename: NonMaxSup.cpp
-// Description: 
-// Author: Yannick Verdie, Kwang Moo Yi
-// Maintainer: Yannick Verdie, Kwang Moo Yi
-// Created: Tue Mar  3 17:48:14 2015 (+0100)
-// Version: 0.5a
-// Package-Requires: ()
-// Last-Updated: Tue Jun 16 17:09:37 2015 (+0200)
-//           By: Kwang
-//     Update #: 6
-// URL: 
-// Doc URL: 
-// Keywords: 
-// Compatibility: 
-// 
-// 
-
-// Commentary: 
-// 
-// 
-// 
-// 
-
-// Change Log:
-// 
-// 
-// 
-// 
-// Copyright (C), EPFL Computer Vision Lab.
-// 
-// 
-
-// Code:
 #include "NonMaxSup.hpp"
 
-vector<Point3f> 
-NonMaxSup(const Mat & response)
+vector<Point3f> NonMaxSup(const Mat & response)
 {
     // stupid non-max suppression without any fancy tricks
     vector<Point3f> res;
@@ -113,7 +77,3 @@ vector<KeyPoint> NonMaxSup_resize_format(const Mat &response, const float& resiz
 
     return res;
 }
-
-
-
-// NonMaxSup.cpp ends here

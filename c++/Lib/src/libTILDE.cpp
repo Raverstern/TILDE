@@ -1,39 +1,3 @@
-// libTILDE.cpp --- 
-// 
-// Filename: libTILDE.cpp
-// Description: 
-// Author: Yannick Verdie, Kwang Moo Yi, Alberto Crivella
-// Maintainer: Yannick Verdie, Kwang Moo Yi
-// Created: Tue Mar  3 17:53:46 2015 (+0100)
-// Version: 0.5a
-// Package-Requires: ()
-// Last-Updated: Thu May 28 13:18:32 2015 (+0200)
-//           By: Kwang
-//     Update #: 40
-// URL: 
-// Doc URL: 
-// Keywords: 
-// Compatibility: 
-// 
-// 
-
-// Commentary: 
-// 
-// 
-// 
-// 
-
-// Change Log:
-// 
-// 
-// 
-// 
-// Copyright (C), EPFL Computer Vision Lab.
-// 
-// 
-
-// Code:
-
 #include "libTILDE.hpp"
 
 // #ifdef __ANDROID__
@@ -43,327 +7,350 @@
 
 vector < Mat > getLuv_fast(const Mat & input_color_image)
 {
-	if (input_color_image.channels() != 3)
-	{
-		LOGE("Need a 3-channnel image (Luv_fast)");
-	}
-	vector < Mat > luvImage(3);
-	for (int idxC = 0; idxC < 3; ++idxC) {
-		luvImage[idxC].create(input_color_image.rows, input_color_image.cols, CV_32F);
-	}
+    if (input_color_image.channels() != 3)
+    {
+        LOGE("Need a 3-channnel image (Luv_fast)");
+    }
+    vector < Mat > luvImage(3);
+    for (int idxC = 0; idxC < 3; ++idxC) {
+        luvImage[idxC].create(input_color_image.rows, input_color_image.cols, CV_32F);
+    }
 
-	//init
-
-
-	class classRGB2LUV :public ParallelLoopBody
-	{
-	public:
-		classRGB2LUV(const Mat& imgIn_, const vector<Mat>* vecOut_)
-				: imgIn(imgIn_), vecOut(vecOut_)
-		{
-			for(int i=0; i<1025; i++)
-			{
-				float y = (float) (i/1024.0);
-				float l = y>y0 ? 116*(float)pow((double)y,1.0/3.0)-16 : y*a;
-				lTable[i] = l*maxi;
-			}
-		};
-
-		// ! Overloaded virtual operator
-		// convert range call to row call.
-		virtual void operator()(const Range &r) const
-		{
-
-			Rect roi(0, r.start, imgIn.cols, r.end - r.start);
-			Mat in(imgIn, roi);
+    //init
 
 
-			Mat out1((*vecOut)[0],roi);
-			Mat out2((*vecOut)[1],roi);
-			Mat out3((*vecOut)[2],roi);
+    class classRGB2LUV :public ParallelLoopBody
+    {
+    public:
+        classRGB2LUV(const Mat& imgIn_, const vector<Mat>* vecOut_)
+                : imgIn(imgIn_), vecOut(vecOut_)
+        {
+            for(int i=0; i<1025; i++)
+            {
+                float y = (float) (i/1024.0);
+                float l = y>y0 ? 116*(float)pow((double)y,1.0/3.0)-16 : y*a;
+                lTable[i] = l*maxi;
+            }
+        };
+
+        // ! Overloaded virtual operator
+        // convert range call to row call.
+        virtual void operator()(const Range &r) const
+        {
+
+            Rect roi(0, r.start, imgIn.cols, r.end - r.start);
+            Mat in(imgIn, roi);
 
 
-			//Rect roi(0, r.begin(), vectorInput[idxDim].cols, r.end() - r.begin());
-			for (int i = 0; i < in.rows; i++)
-			{
-				uchar* pixelin = in.ptr<uchar>(i);  // point to first color in row
-				float* pixelout1 = out1.ptr<float>(i);  // point to first color in row
-				float* pixelout2 = out2.ptr<float>(i);  // point to first color in row
-				float* pixelout3 = out3.ptr<float>(i);  // point to first color in row
-				for (int j = 0; j < in.cols; j++)//row
-				{
-					// cv::Vec3b rgb = in.at<cv::Vec3b>(j,i);
-					// float r = rgb[2] / 255.0f;
-					//    float g = rgb[1] / 255.0f;
-					//    float b = rgb[0] / 255.0f;
-					float b = *pixelin++ / 255.0f;
-					float g = *pixelin++ / 255.0f;
-					float r = *pixelin++ / 255.0f;
-
-					//RGB to LUV conversion
-
-					//delcare variables
-					double  x, y, z, u_prime, v_prime, constant, L, u, v;
-
-					//convert RGB to XYZ...
-					x       = XYZ[0][0]*r + XYZ[0][1]*g + XYZ[0][2]*b;
-					y       = XYZ[1][0]*r + XYZ[1][1]*g + XYZ[1][2]*b;
-					z       = XYZ[2][0]*r + XYZ[2][1]*g + XYZ[2][2]*b;
-
-					//convert XYZ to LUV...
-
-					//compute ltable(y*1024)
-					L = lTable[(int)(y*1024)];
-
-					//compute u_prime and v_prime
-					constant    = 1/(x + 15 * y + 3 * z + 1e-35);   //=z
-
-					u_prime = (4 * x) * constant;   //4*x*z
-					v_prime = (9 * y) * constant;
+            Mat out1((*vecOut)[0],roi);
+            Mat out2((*vecOut)[1],roi);
+            Mat out3((*vecOut)[2],roi);
 
 
-					//compute u* and v*
-					u = (float) (13 * L * (u_prime - Un_prime)) - minu;
-					v = (float) (13 * L * (v_prime - Vn_prime)) - minv;
+            //Rect roi(0, r.begin(), vectorInput[idxDim].cols, r.end() - r.begin());
+            for (int i = 0; i < in.rows; i++)
+            {
+                uchar* pixelin = in.ptr<uchar>(i);  // point to first color in row
+                float* pixelout1 = out1.ptr<float>(i);  // point to first color in row
+                float* pixelout2 = out2.ptr<float>(i);  // point to first color in row
+                float* pixelout3 = out3.ptr<float>(i);  // point to first color in row
+                for (int j = 0; j < in.cols; j++)//row
+                {
+                    // cv::Vec3b rgb = in.at<cv::Vec3b>(j,i);
+                    // float r = rgb[2] / 255.0f;
+                    //    float g = rgb[1] / 255.0f;
+                    //    float b = rgb[0] / 255.0f;
+                    float b = *pixelin++ / 255.0f;
+                    float g = *pixelin++ / 255.0f;
+                    float r = *pixelin++ / 255.0f;
 
-					// out1.at<float>(j,i) = L*270*2.55;
-					// out2.at<float>(j,i) = ((u*270-88)+ 134.0)* 255.0 / 354.0;
-					// out3.at<float>(j,i) = ((v*270-134)+ 140.0)* 255.0 / 256.0;
+                    //RGB to LUV conversion
 
-					*pixelout1++ = L*270*2.55;
-					*pixelout2++ = ((u*270-88)+ 134.0)* 255.0 / 354.0;
-					*pixelout3++ = ((v*270-134)+ 140.0)* 255.0 / 256.0;
+                    //delcare variables
+                    double  x, y, z, u_prime, v_prime, constant, L, u, v;
 
-				}
-			}
+                    //convert RGB to XYZ...
+                    x       = XYZ[0][0]*r + XYZ[0][1]*g + XYZ[0][2]*b;
+                    y       = XYZ[1][0]*r + XYZ[1][1]*g + XYZ[1][2]*b;
+                    z       = XYZ[2][0]*r + XYZ[2][1]*g + XYZ[2][2]*b;
+
+                    //convert XYZ to LUV...
+
+                    //compute ltable(y*1024)
+                    L = lTable[(int)(y*1024)];
+
+                    //compute u_prime and v_prime
+                    constant    = 1/(x + 15 * y + 3 * z + 1e-35);   //=z
+
+                    u_prime = (4 * x) * constant;   //4*x*z
+                    v_prime = (9 * y) * constant;
 
 
-		}
-	private:
-		const float y0=(float) ((6.0/29)*(6.0/29)*(6.0/29));
-		const float a= (float) ((29.0/3)*(29.0/3)*(29.0/3));
-		const double XYZ[3][3] = {  {  0.430574,  0.341550,  0.178325 },
-		                            {  0.222015,  0.706655,  0.071330 },
-		                            {  0.020183,  0.129553,  0.939180 }   };
+                    //compute u* and v*
+                    u = (float) (13 * L * (u_prime - Un_prime)) - minu;
+                    v = (float) (13 * L * (v_prime - Vn_prime)) - minv;
 
-		const double Un_prime   = 0.197833;
-		const double Vn_prime   = 0.468331;
-		const double maxi 		= 1.0/270;
-		const double minu 		= -88*maxi;
-		const double minv 		= -134*maxi;
-		const double Lt     = 0.008856;
+                    // out1.at<float>(j,i) = L*270*2.55;
+                    // out2.at<float>(j,i) = ((u*270-88)+ 134.0)* 255.0 / 354.0;
+                    // out3.at<float>(j,i) = ((v*270-134)+ 140.0)* 255.0 / 256.0;
 
-		//addapted from Dollar toolbox
-		//http://vision.ucsd.edu/~pdollar/toolbox/doc/
+                    *pixelout1++ = L*270*2.55;
+                    *pixelout2++ = ((u*270-88)+ 134.0)* 255.0 / 354.0;
+                    *pixelout3++ = ((v*270-134)+ 140.0)* 255.0 / 256.0;
 
-		float lTable[1064];
+                }
+            }
 
-		const Mat& imgIn;
-		const vector<Mat>* vecOut;
-	};
 
-	// Get Max idx using Magnitude
-	classRGB2LUV LUVconverter(input_color_image,&luvImage);
-	cv::parallel_for_( cv::Range (0, input_color_image.rows), LUVconverter);
+        }
+    private:
+        const float y0=(float) ((6.0/29)*(6.0/29)*(6.0/29));
+        const float a= (float) ((29.0/3)*(29.0/3)*(29.0/3));
+        const double XYZ[3][3] = {  {  0.430574,  0.341550,  0.178325 },
+                                    {  0.222015,  0.706655,  0.071330 },
+                                    {  0.020183,  0.129553,  0.939180 }   };
 
-	return luvImage;
+        const double Un_prime   = 0.197833;
+        const double Vn_prime   = 0.468331;
+        const double maxi       = 1.0/270;
+        const double minu       = -88*maxi;
+        const double minv       = -134*maxi;
+        const double Lt     = 0.008856;
+
+        //addapted from Dollar toolbox
+        //http://vision.ucsd.edu/~pdollar/toolbox/doc/
+
+        float lTable[1064];
+
+        const Mat& imgIn;
+        const vector<Mat>* vecOut;
+    };
+
+    // Get Max idx using Magnitude
+    classRGB2LUV LUVconverter(input_color_image,&luvImage);
+    cv::parallel_for_( cv::Range (0, input_color_image.rows), LUVconverter);
+
+    return luvImage;
 }
 
 
 vector < Mat > getGrad_fast(const Mat & input_color_image)
 {
-	// The derivative5 kernels
-	Mat d1 = (Mat_ < float >(1, 5) << 0.109604, 0.276691, 0.000000, -0.276691, -0.109604);
-	Mat d1T = (Mat_ < float >(5, 1) << 0.109604, 0.276691, 0.000000, -0.276691, -0.109604);
-	Mat p = (Mat_ < float >(1, 5) << 0.037659, 0.249153, 0.426375, 0.249153, 0.037659);
-	Mat pT = (Mat_ < float >(5, 1) << 0.037659, 0.249153, 0.426375, 0.249153, 0.037659);
+    // The derivative5 kernels
+    Mat d1 = (Mat_ < float >(1, 5) << 0.109604, 0.276691, 0.000000, -0.276691, -0.109604);
+    Mat d1T = (Mat_ < float >(5, 1) << 0.109604, 0.276691, 0.000000, -0.276691, -0.109604);
+    Mat p = (Mat_ < float >(1, 5) << 0.037659, 0.249153, 0.426375, 0.249153, 0.037659);
+    Mat pT = (Mat_ < float >(5, 1) << 0.037659, 0.249153, 0.426375, 0.249153, 0.037659);
 
-	const int nbChannels = input_color_image.channels();
+    const int nbChannels = input_color_image.channels();
 
-	//temp storage...
-	vector < Mat > color_channels(nbChannels);
-	vector < Mat > gx(nbChannels);
-	vector < Mat > gy(nbChannels);
+    //temp storage...
+    vector < Mat > color_channels(nbChannels);
+    vector < Mat > gx(nbChannels);
+    vector < Mat > gy(nbChannels);
 
-	//the output
-	vector < Mat > gradImage(3);
-
-
-	// // prepare output
-	for (int idxC = 0; idxC < 3; ++idxC)
-	{
-		gradImage[idxC].create(input_color_image.rows, input_color_image.cols, CV_32F);
-	}
+    //the output
+    vector < Mat > gradImage(3);
 
 
-
-	if (nbChannels == 1)
-	{
-		color_channels[0] = input_color_image;
-	}else{
-		if (nbChannels != 3)
-			LOGE("Need 1 or 3-channel image");
-
-		// split the channels into each color channel
-		split(input_color_image, color_channels);
-	}
-
-	//for each channel do the derivative 5 
-	for (int idxC = 0; idxC < nbChannels; ++idxC)
-	{
-		sepFilter2D(color_channels[idxC], gx[idxC], CV_32F, d1, p, Point(-1, -1), 0,
-		            BORDER_REFLECT);
-		sepFilter2D(color_channels[idxC], gy[idxC], CV_32F, p, d1, Point(-1, -1), 0,
-		            BORDER_REFLECT);
-		// since we do the other direction, just flip signs
-		gx[idxC] = -gx[idxC];
-		gy[idxC] = -gy[idxC];
-
-		// the magnitude image
-		//sqrt(gx[idxC].mul(gx[idxC]) + gy[idxC].mul(gy[idxC]), mag[idxC]);
-	}
+    // // prepare output
+    for (int idxC = 0; idxC < 3; ++idxC)
+    {
+        gradImage[idxC].create(input_color_image.rows, input_color_image.cols, CV_32F);
+    }
 
 
 
-	class classImg2GxGyM :public ParallelLoopBody
-	{
-	public:
-		classImg2GxGyM(const vector<Mat>& vecInGx_, const vector<Mat>& vecInGy_, const vector<Mat>* vecOut_)
-				: vecInGx(vecInGx_),vecInGy(vecInGy_), vecOut(vecOut_)
-		{
-			nbChannels = vecInGx.size();
+    if (nbChannels == 1)
+    {
+        color_channels[0] = input_color_image;
+    }else{
+        if (nbChannels != 3)
+            LOGE("Need 1 or 3-channel image");
 
-		};
+        // split the channels into each color channel
+        split(input_color_image, color_channels);
+    }
 
-		// ! Overloaded virtual operator
-		// convert range call to row call.
-		virtual void operator()(const Range &r) const
-		{
+    //for each channel do the derivative 5 
+    for (int idxC = 0; idxC < nbChannels; ++idxC)
+    {
+        sepFilter2D(color_channels[idxC], gx[idxC], CV_32F, d1, p, Point(-1, -1), 0,
+                    BORDER_REFLECT);
+        sepFilter2D(color_channels[idxC], gy[idxC], CV_32F, p, d1, Point(-1, -1), 0,
+                    BORDER_REFLECT);
+        // since we do the other direction, just flip signs
+        gx[idxC] = -gx[idxC];
+        gy[idxC] = -gy[idxC];
 
-			Rect roi(0, r.start, vecInGx[0].cols, r.end - r.start);
-			vector<Mat> inx( nbChannels);vector<Mat> iny( nbChannels);
-
-			for (int idxC = 0; idxC < nbChannels; ++idxC)
-			{
-				inx[idxC] = Mat(vecInGx[idxC], roi);
-				iny[idxC] = Mat(vecInGy[idxC], roi);
-			}
+        // the magnitude image
+        //sqrt(gx[idxC].mul(gx[idxC]) + gy[idxC].mul(gy[idxC]), mag[idxC]);
+    }
 
 
-			Mat out1((*vecOut)[0],roi);
-			Mat out2((*vecOut)[1],roi);
-			Mat out3((*vecOut)[2],roi);
 
-			for (int i = 0; i < inx[0].rows; i++)
-			{
-				float* pixelin1[nbChannels];float* pixelin2[nbChannels];
-				for (int idxC = 0; idxC < nbChannels; ++idxC)
-				{
-					pixelin1[idxC] = inx[idxC].ptr<float>(i);  // point to first color in row
-					pixelin2[idxC] = iny[idxC].ptr<float>(i);  // point to first color in row
-				}
+    class classImg2GxGyM :public ParallelLoopBody
+    {
+    public:
+        classImg2GxGyM(const vector<Mat>& vecInGx_, const vector<Mat>& vecInGy_, const vector<Mat>* vecOut_)
+                : vecInGx(vecInGx_),vecInGy(vecInGy_), vecOut(vecOut_)
+        {
+            nbChannels = vecInGx.size();
 
-				float* pixelout1 = out1.ptr<float>(i);  // point to first color in row
-				float* pixelout2 = out2.ptr<float>(i);  // point to first color in row
-				float* pixelout3 = out3.ptr<float>(i);  // point to first color in row
-				for (int j = 0; j < inx[0].cols; j++)//row
-				{
-					float maxVal = -1;float maxValx;float maxValy;
-					float val_squared;
-					float valx;float valy;
-					for (int idxC = 0; idxC < nbChannels; ++idxC)
-					{
-						valx = *pixelin1[idxC]++;//inx[idxC].at < float >(i, j);
-						valy = *pixelin2[idxC]++;//iny[idxC].at < float >(i, j);
-						val_squared = (valx*valx+valy*valy);
-						if (val_squared > maxVal)
-						{
-							maxVal = val_squared ;
-							maxValx = valx;
-							maxValy = valy;
-						}
-					}
+        };
 
-					*pixelout1++ = maxValx * 0.5 + 128.0;
-					*pixelout2++ = maxValy * 0.5 + 128.0;
-					*pixelout3++ = sqrt(maxVal);
+        // ! Overloaded virtual operator
+        // convert range call to row call.
+        virtual void operator()(const Range &r) const
+        {
 
-				}
-			}
-		}
-	private:
+            Rect roi(0, r.start, vecInGx[0].cols, r.end - r.start);
+            vector<Mat> inx( nbChannels);vector<Mat> iny( nbChannels);
 
-		int nbChannels;
-		const vector<Mat>& vecInGx;
-		const vector<Mat>& vecInGy;
-		const vector<Mat>* vecOut;
-	};
+            for (int idxC = 0; idxC < nbChannels; ++idxC)
+            {
+                inx[idxC] = Mat(vecInGx[idxC], roi);
+                iny[idxC] = Mat(vecInGy[idxC], roi);
+            }
 
-	classImg2GxGyM GxGyMconverter(gx,gy,&gradImage);
-	cv::parallel_for_( cv::Range (0, input_color_image.rows), GxGyMconverter);
 
-	return gradImage;
+            Mat out1((*vecOut)[0],roi);
+            Mat out2((*vecOut)[1],roi);
+            Mat out3((*vecOut)[2],roi);
+
+            for (int i = 0; i < inx[0].rows; i++)
+            {
+                float* pixelin1[nbChannels];float* pixelin2[nbChannels];
+                for (int idxC = 0; idxC < nbChannels; ++idxC)
+                {
+                    pixelin1[idxC] = inx[idxC].ptr<float>(i);  // point to first color in row
+                    pixelin2[idxC] = iny[idxC].ptr<float>(i);  // point to first color in row
+                }
+
+                float* pixelout1 = out1.ptr<float>(i);  // point to first color in row
+                float* pixelout2 = out2.ptr<float>(i);  // point to first color in row
+                float* pixelout3 = out3.ptr<float>(i);  // point to first color in row
+                for (int j = 0; j < inx[0].cols; j++)//row
+                {
+                    float maxVal = -1;float maxValx;float maxValy;
+                    float val_squared;
+                    float valx;float valy;
+                    for (int idxC = 0; idxC < nbChannels; ++idxC)
+                    {
+                        valx = *pixelin1[idxC]++;//inx[idxC].at < float >(i, j);
+                        valy = *pixelin2[idxC]++;//iny[idxC].at < float >(i, j);
+                        val_squared = (valx*valx+valy*valy);
+                        if (val_squared > maxVal)
+                        {
+                            maxVal = val_squared ;
+                            maxValx = valx;
+                            maxValy = valy;
+                        }
+                    }
+
+                    *pixelout1++ = maxValx * 0.5 + 128.0;
+                    *pixelout2++ = maxValy * 0.5 + 128.0;
+                    *pixelout3++ = sqrt(maxVal);
+
+                }
+            }
+        }
+    private:
+
+        int nbChannels;
+        const vector<Mat>& vecInGx;
+        const vector<Mat>& vecInGy;
+        const vector<Mat>* vecOut;
+    };
+
+    classImg2GxGyM GxGyMconverter(gx,gy,&gradImage);
+    cv::parallel_for_( cv::Range (0, input_color_image.rows), GxGyMconverter);
+
+    return gradImage;
 }
 
 
 // Function which return in Keypoint Structure
 vector < KeyPoint > getTILDEKeyPoints(const Mat & indatav, const string & filter_name, const bool useApprox,
                                       const bool sortMe, const float threshold, Mat * score)
+/* 
+ * input:
+ * indatav: image
+ * filter_name: path of the filter file
+ * useApprox: use approximation or not
+ * sortMe: sort the output by their response (intensity)
+ * threshold: ?
+ *
+ * output:
+ * vector<cv::Keypoint>: a set of TILDE feature points
+ * score: score map
+ */
 {
-	bool bUseDescriptorField = false; // disabled by default - for
-	// compatibility with future use
-	cv::Mat img = indatav.clone();//we copy the input data here, because we will resize it before filtering
+    bool bUseDescriptorField = false; // disabled by default - for compatibility with future use
+    cv::Mat img = indatav.clone();//we copy the input data here, because we will resize it before filtering
 
-	// Read the txt file to get the filter
-	TILDEobjects  tilde_obj = getTILDEObject(filter_name,  useApprox, bUseDescriptorField);
+    // Read the txt file to get the filter
+    TILDEobjects  tilde_obj = getTILDEObject(filter_name,  useApprox, bUseDescriptorField);
 
-	if (tilde_obj.parameters.size() < 1)
-		LOGE("parameters from the filter could not be read, error !\n");
+    if (tilde_obj.parameters.size() < 1)
+        LOGE("parameters from the filter could not be read, error !\n");
 
-	vector < Point3f > curPart;
-	if (useApprox) {
-		curPart = applyApproxFilters(img, tilde_obj, bUseDescriptorField, sortMe, threshold, score);
-	} else {
-		curPart = applyNonApproxFilters(img, tilde_obj.nonApprox_filters, false, sortMe, tilde_obj.parameters[0],threshold, score);
-	}
+    vector < Point3f > curPart;
+    if (useApprox) {
+        curPart = applyApproxFilters(img, tilde_obj, bUseDescriptorField, sortMe, threshold, score);
+    } else {
+        curPart = applyNonApproxFilters(img, tilde_obj.nonApprox_filters, false, sortMe, tilde_obj.parameters[0],threshold, score);
+    }
 
-	const float scaleKeypoint = 10.0;const float orientation = 0;
-	vector < KeyPoint > res;
-	for (int i = 0; i < curPart.size(); i++) {
-		res.push_back(KeyPoint(Point2f(curPart[i].x, curPart[i].y), scaleKeypoint,orientation,curPart[i].z));
-	}
+    /* turn points into KeyPoints */
+    const float scaleKeypoint = 10.0;const float orientation = 0;
+    vector < KeyPoint > res;
+    for (int i = 0; i < curPart.size(); i++) {
+        res.push_back(KeyPoint(Point2f(curPart[i].x, curPart[i].y), scaleKeypoint,orientation,curPart[i].z));
+    }
 
 
-	return res;
+    return res;
 }
 
 vector < KeyPoint > getTILDEKeyPoints_fast(const Mat & indatav, const string & filter_name, const bool sortMe, const float threshold,  Mat * score)
+/* 
+ * input:
+ * indatav: image
+ * filter_name: path of the filter file
+ * sortMe: sort the output by their response (intensity)
+ * threshold: ?
+ *
+ * output:
+ * vector<cv::Keypoint>: a set of TILDE feature points
+ * score: score map
+ */
 {
-	//const float scaleKeypoint = 10.0;const float orientationKeypoint = 0;
+    //const float scaleKeypoint = 10.0;const float orientationKeypoint = 0;
 
-	cv::Mat img = indatav.clone();//we copy the input data here, because we will resize it before filtering
+    cv::Mat img = indatav.clone();//we copy the input data here, because we will resize it before filtering
 
-	// Read the txt file to get the filter
-	TILDEobjects  tilde_obj = getTILDEObject(filter_name, true, false);
-	return applyApproxFilters_fast(img, tilde_obj,  sortMe, threshold, score);
+    // Read the txt file to get the filter
+    TILDEobjects  tilde_obj = getTILDEObject(filter_name, true, false);
+    return applyApproxFilters_fast(img, tilde_obj,  sortMe, threshold, score);
 }
 
 
 Mat normalizeScore(const Mat& score)
 {
-	Mat output = score.clone();
-	// if (score != NULL) {
-	double minVal, maxVal;
-	minMaxLoc(output, &minVal, &maxVal);
-	double range = maxVal - minVal;
+    Mat output = score.clone();
+    // if (score != NULL) {
+    double minVal, maxVal;
+    minMaxLoc(output, &minVal, &maxVal);
+    double range = maxVal - minVal;
 
-	//LOGD("normalize with max %f, min %f",maxVal,minVal);
-	if (range == 0)
-		output = (output - minVal);//the score is a constant value, returns zero
-	else
-		output = (output - minVal) / range;
+    //LOGD("normalize with max %f, min %f",maxVal,minVal);
+    if (range == 0)
+        output = (output - minVal);//the score is a constant value, returns zero
+    else
+        output = (output - minVal) / range;
 
-	return output;
+    return output;
 }
 
 void prepareData(const Mat & indatav,
@@ -372,24 +359,24 @@ void prepareData(const Mat & indatav,
                  vector < Mat > *output)
 {
 
-	Mat indata_resized = indatav;
-	if (resizeRatio != 1)
-		resize(indatav, indata_resized, Size(0, 0), resizeRatio, resizeRatio);
+    Mat indata_resized = indatav;
+    if (resizeRatio != 1)
+        resize(indatav, indata_resized, Size(0, 0), resizeRatio, resizeRatio);
 
-	if (useDescriptorField) {
-		*output = getNormalizedDescriptorField(indatav);
-	} else {
+    if (useDescriptorField) {
+        *output = getNormalizedDescriptorField(indatav);
+    } else {
 
-		vector < Mat > gradImage = getGradImage(indata_resized);
-		vector < Mat > luvImage = getLuvImage(indata_resized);
-		//vectorInput.clear();
-		copy(gradImage.begin(), gradImage.end(), std::back_inserter(*output));
-		copy(luvImage.begin(), luvImage.end(), std::back_inserter(*output));
+        vector < Mat > gradImage = getGradImage(indata_resized);
+        vector < Mat > luvImage = getLuvImage(indata_resized);
+        //vectorInput.clear();
+        copy(gradImage.begin(), gradImage.end(), std::back_inserter(*output));
+        copy(luvImage.begin(), luvImage.end(), std::back_inserter(*output));
 
-		if (output->size() != 6)
-			LOGE("Error during creation of the features (LUV+Grad)");
+        if (output->size() != 6)
+            LOGE("Error during creation of the features (LUV+Grad)");
 
-	}
+    }
 }
 
 void prepareData_fast(const Mat & indatav,
@@ -398,51 +385,50 @@ void prepareData_fast(const Mat & indatav,
                       vector < Mat > *output)
 {
 
-	if (indatav.channels() != 3)
-		LOGE("need a rgb image....");
+    if (indatav.channels() != 3)
+        LOGE("need a rgb image....");
 
-	Mat indata_resized = indatav;
-	if (resizeRatio != 1)
-		resize(indatav, indata_resized, Size(0, 0), resizeRatio, resizeRatio);
+    Mat indata_resized = indatav;
+    if (resizeRatio != 1)
+        resize(indatav, indata_resized, Size(0, 0), resizeRatio, resizeRatio);
 
-	*output = vector<Mat>(6,Mat::zeros( indatav.size(), CV_32F));
+    *output = vector<Mat>(6,Mat::zeros( indatav.size(), CV_32F));
 
 
-	if (useDescriptorField) {
-		*output = getNormalizedDescriptorField(indatav);
-	} else {
-		vector < Mat > gradImage = getGrad_fast(indata_resized);
-		copy(gradImage.begin(), gradImage.end(), output->begin());
-		vector < Mat > luvImage = getLuv_fast(indata_resized);
-		copy(luvImage.begin(), luvImage.end(), output->begin()+3);
-	}
+    if (useDescriptorField) {
+        *output = getNormalizedDescriptorField(indatav);
+    } else {
+        vector < Mat > gradImage = getGrad_fast(indata_resized);
+        copy(gradImage.begin(), gradImage.end(), output->begin());
+        vector < Mat > luvImage = getLuv_fast(indata_resized);
+        copy(luvImage.begin(), luvImage.end(), output->begin()+3);
+    }
 }
 
 
 void getCombinedScore(const vector < vector < Mat > >& cascade_responses, const float threshold, Mat *output)
 {
-	for (int idxCascade = 0; idxCascade < cascade_responses.size(); ++idxCascade)
-	{
-		Mat respImageCascade = cascade_responses[idxCascade][0];
+    for (int idxCascade = 0; idxCascade < cascade_responses.size(); ++idxCascade)
+    {
+        Mat respImageCascade = cascade_responses[idxCascade][0];
 
-		for (int idxDepth = 1; idxDepth < cascade_responses[idxCascade].size(); ++idxDepth)
-			respImageCascade =
-					max(respImageCascade, cascade_responses[idxCascade][idxDepth]);
+        for (int idxDepth = 1; idxDepth < cascade_responses[idxCascade].size(); ++idxDepth)
+            respImageCascade = max(respImageCascade, cascade_responses[idxCascade][idxDepth]);
 
-		respImageCascade = idxCascade % 2 == 0 ? -respImageCascade : respImageCascade;
-		if (idxCascade == 0)
-			*output = respImageCascade;
-		else
-			*output = respImageCascade + *output;
-	}
+        respImageCascade = idxCascade % 2 == 0 ? -respImageCascade : respImageCascade;
+        if (idxCascade == 0)
+            *output = respImageCascade;
+        else
+            *output = respImageCascade + *output;
+    }
 
-	//post process
-	const float stdv = 2;
-	const int sizeSmooth = 5 * stdv * 2 + 1;
-	GaussianBlur(*output, *output, Size(sizeSmooth, sizeSmooth), stdv, stdv);
+    //post process
+    const float stdv = 2;
+    const int sizeSmooth = 5 * stdv * 2 + 1;
+    GaussianBlur(*output, *output, Size(sizeSmooth, sizeSmooth), stdv, stdv);
 
-	if (threshold > std::numeric_limits<float>::infinity())
-		*output = max(*output, threshold);
+    if (threshold > std::numeric_limits<float>::infinity())
+        *output = max(*output, threshold);
 
 
 }
@@ -452,43 +438,43 @@ vector < KeyPoint > applyApproxFilters_fast(const Mat & indatav, TILDEobjects & 
                                             const bool sortMe, const float threshold,
                                             Mat * score)
 {
-	if (tilde_obj.parameters.size()< 5)
-		LOGE("error in the number of parameters passed (%d)",tilde_obj.parameters.size());
+    if (tilde_obj.parameters.size()< 5)
+        LOGE("error in the number of parameters passed (%d)",tilde_obj.parameters.size());
 
-	const float resizeRatio = tilde_obj.parameters[0];
-	if (resizeRatio == 0)
-		LOGE("The resize ratio is zero, if you dont want any resize, use 1");
+    const float resizeRatio = tilde_obj.parameters[0];
+    if (resizeRatio == 0)
+        LOGE("The resize ratio is zero, if you dont want any resize, use 1");
 
-	if (indatav.channels() == 1 && tilde_obj.parameters[4] != 1 ||
-	    indatav.channels() == 3 && tilde_obj.parameters[4] != 6)
-		LOGE("error, non-matching filter and image... %d / %d",indatav.channels(),tilde_obj.parameters[4]);
-
-
-	if (tilde_obj.parameters[4] == 1 && indatav.channels() == 1)//nb channels
-	{
-		Mat indata_resized = indatav;
-		if (resizeRatio != 1)
-			resize(indatav, indata_resized, Size(0, 0), resizeRatio, resizeRatio);
-
-		if (tilde_obj.vectorInput.size() == 0)//init, done only once
-			tilde_obj.vectorInput = vector<Mat>(1);
+    if (indatav.channels() == 1 && tilde_obj.parameters[4] != 1 ||
+        indatav.channels() == 3 && tilde_obj.parameters[4] != 6)
+        LOGE("error, non-matching filter and image... %d / %d",indatav.channels(),tilde_obj.parameters[4]);
 
 
-		indata_resized.copyTo(tilde_obj.vectorInput[0]);
-	}else{
-		//prepareData(indatav,resizeRatio, false,&(tilde_obj.vectorInput));
-		prepareData_fast(indatav,resizeRatio, false,&(tilde_obj.vectorInput));
-	}
+    if (tilde_obj.parameters[4] == 1 && indatav.channels() == 1)//nb channels
+    {
+        Mat indata_resized = indatav;
+        if (resizeRatio != 1)
+            resize(indatav, indata_resized, Size(0, 0), resizeRatio, resizeRatio);
 
-	getScoresandCombine_Approx(tilde_obj, tilde_obj.vectorInput,threshold,&(tilde_obj.outputScore));
+        if (tilde_obj.vectorInput.size() == 0)//init, done only once
+            tilde_obj.vectorInput = vector<Mat>(1);
 
-	if (score != NULL)
-		*score = tilde_obj.outputScore.clone();
 
-	// perform non-max suppression
-	vector < KeyPoint > res = NonMaxSup_resize_format(tilde_obj.outputScore, resizeRatio, tilde_obj.scale, tilde_obj.orientation, sortMe); //return x,y,score for each keypoint, such as we can sort them later
+        indata_resized.copyTo(tilde_obj.vectorInput[0]);
+    }else{
+        //prepareData(indatav,resizeRatio, false,&(tilde_obj.vectorInput));
+        prepareData_fast(indatav,resizeRatio, false,&(tilde_obj.vectorInput));
+    }
 
-	return res;
+    getScoresandCombine_Approx(tilde_obj, tilde_obj.vectorInput,threshold,&(tilde_obj.outputScore));
+
+    if (score != NULL)
+        *score = tilde_obj.outputScore.clone();
+
+    // perform non-max suppression
+    vector < KeyPoint > res = NonMaxSup_resize_format(tilde_obj.outputScore, resizeRatio, tilde_obj.scale, tilde_obj.orientation, sortMe); //return x,y,score for each keypoint, such as we can sort them later
+
+    return res;
 }
 
 vector < Point3f > applyApproxFilters(const Mat & indatav, const TILDEobjects & tilde_obj,
@@ -496,43 +482,43 @@ vector < Point3f > applyApproxFilters(const Mat & indatav, const TILDEobjects & 
                                       const bool sortMe, const float threshold,
                                       Mat * score)
 {
-	//const float scaleKeypoint = 10.0;const float orientation = 0;
-	float resizeRatio = tilde_obj.parameters[0];
-	if (resizeRatio == 0)
-		LOGE("The resize ratio is zero, if you dont want any resize, use 1");
+    //const float scaleKeypoint = 10.0;const float orientation = 0;
+    float resizeRatio = tilde_obj.parameters[0];
+    if (resizeRatio == 0)
+        LOGE("The resize ratio is zero, if you dont want any resize, use 1");
 
-	vector < Mat > vectorInput;
-	prepareData(indatav,resizeRatio, useDescriptorField,&vectorInput);
+    vector < Mat > vectorInput;
+    prepareData(indatav,resizeRatio, useDescriptorField,&vectorInput);
 
-	vector < vector < Mat > >cascade_responses = getScoresForApprox(tilde_obj, vectorInput);
+    vector < vector < Mat > >cascade_responses = getScoresForApprox(tilde_obj, vectorInput);
 
-	// apply the cascade structure and retrieve single channel response image
-	Mat outputScore;
+    // apply the cascade structure and retrieve single channel response image
+    Mat outputScore;
 
-	getCombinedScore(cascade_responses, threshold, &outputScore);
+    getCombinedScore(cascade_responses, threshold, &outputScore);
 
-	if (score != NULL)
-		*score = outputScore.clone();
+    if (score != NULL)
+        *score = outputScore.clone();
 
-	// perform non-max suppression
-	vector < Point3f > res_with_score = NonMaxSup(outputScore); //return x,y,score for each keypoint, such as we can sort them later
+    // perform non-max suppression
+    vector < Point3f > res_with_score = NonMaxSup(outputScore); //return x,y,score for each keypoint, such as we can sort them later
 
-	if (sortMe) {
-		std::sort(res_with_score.begin(), res_with_score.end(),
-		          [](const Point3f & a, const Point3f & b) {
-		              return a.z > b.z;}
-		);
-	}
-	// resize back
+    if (sortMe) {
+        std::sort(res_with_score.begin(), res_with_score.end(),
+                  [](const Point3f & a, const Point3f & b) {
+                      return a.z > b.z;}
+        );
+    }
+    // resize back
 
 // resize back
-	resizeRatio = 1. / resizeRatio;
-	for (int i = 0; i < res_with_score.size(); ++i) {
-		res_with_score[i].x = res_with_score[i].x * resizeRatio;
-		res_with_score[i].y = res_with_score[i].y * resizeRatio;
-	}
+    resizeRatio = 1. / resizeRatio;
+    for (int i = 0; i < res_with_score.size(); ++i) {
+        res_with_score[i].x = res_with_score[i].x * resizeRatio;
+        res_with_score[i].y = res_with_score[i].y * resizeRatio;
+    }
 
-	return res_with_score;
+    return res_with_score;
 }
 
 
@@ -542,95 +528,96 @@ vector < Point3f > applyApproxFilters(const Mat & indatav, const TILDEobjects & 
 class Parallel_process:public cv::ParallelLoopBody {
 
 private:
-	const TILDEobjects & cas;
-	vector < Mat > &curRes;
-	const int nbApproximatedFilters;
-	const vector < Mat > &vectorInput;
+    const TILDEobjects & cas;
+    vector < Mat > &curRes;
+    const int nbApproximatedFilters;
+    const vector < Mat > &vectorInput;
 
 public:
-	Parallel_process(const vector < Mat > &conv, const int nb, const TILDEobjects & p,
-	                 vector < Mat > &v):vectorInput(conv), cas(p), curRes(v),
-	                                    nbApproximatedFilters(nb) {
-	} virtual void operator() (const cv::Range & range)const {
+    Parallel_process(const vector < Mat > &conv, const int nb, const TILDEobjects & p, vector < Mat > &v)
+        :vectorInput(conv), cas(p), curRes(v), nbApproximatedFilters(nb) { }
 
-		for (int idxFilter = range.start; idxFilter < range.end; idxFilter++) {
+    virtual void operator() (const cv::Range & range)const {
 
-			// the separable filters
-			Mat kernelX = cas.filters[idxFilter * 2 + 1];	// IMPORTANT!
-			// NOTE THE ORDER!
-			Mat kernelY = cas.filters[idxFilter * 2];
+        for (int idxFilter = range.start; idxFilter < range.end; idxFilter++) {
+
+            // the separable filters
+            Mat kernelX = cas.filters[idxFilter * 2 + 1];   // IMPORTANT!
+            // NOTE THE ORDER!
+            Mat kernelY = cas.filters[idxFilter * 2];
 
 
-			// the channel this filter is supposed to be applied to
-			const int idxDim = idxFilter / nbApproximatedFilters;
-			Mat res;
-			sepFilter2D(vectorInput[idxDim], res, CV_32F, kernelX, kernelY, Point(-1, -1),
-			            0, BORDER_REFLECT);
-			curRes[idxFilter] = res.clone(); // not cloning causes wierd issues.
+            // the channel this filter is supposed to be applied to
+            const int idxDim = idxFilter / nbApproximatedFilters;
+            Mat res;
+            sepFilter2D(vectorInput[idxDim], res, CV_32F, kernelX, kernelY, Point(-1, -1), 0, BORDER_REFLECT);
+            curRes[idxFilter] = res.clone(); // not cloning causes wierd issues.
 
-		}}};
+        }
+    }
+};
 
 vector < vector < Mat > >getScoresForApprox(const TILDEobjects & cas,
                                             const vector < Mat > &vectorInput)
 {
-	const vector < float >param = cas.parameters;
-	if (param.size() == 0) {
-		LOGE("No parameter loaded !");
-	}
+    const vector < float >param = cas.parameters;
+    if (param.size() == 0) {
+        LOGE("No parameter loaded !");
+    }
 
-	vector < vector < Mat > >res;
-	int nbMax = param[1];	//4
-	int nbSum = param[2];	//4
-	int nbOriginalFilters = nbMax * nbSum;
-	int nbApproximatedFilters = param[3];	//4
-	int nbChannels = param[4];	//6
-	int sizeFilters = param[5];	//21
-	//--------------------
+    vector < vector < Mat > >res;
+    int nbMax = param[1];   //4
+    int nbSum = param[2];   //4
+    int nbOriginalFilters = nbMax * nbSum;
+    int nbApproximatedFilters = param[3];   //4
+    int nbChannels = param[4];  //6
+    int sizeFilters = param[5]; //21
+    //--------------------
 
-	// allocate res
-	res.resize(nbSum);
-	for (int idxSum = 0; idxSum < nbSum; ++idxSum) {
-		res[idxSum].resize(nbMax);
-	}
+    // allocate res
+    res.resize(nbSum);
+    for (int idxSum = 0; idxSum < nbSum; ++idxSum) {
+        res[idxSum].resize(nbMax);
+    }
 
-	// calculate separable responses
-	int idxSum = 0;
-	int idxMax = 0;
+    // calculate separable responses
+    int idxSum = 0;
+    int idxMax = 0;
 
-	vector < Mat > curRes((int)cas.filters.size() / 2, Mat(vectorInput[0].size(), CV_32F));	// temp storage
+    vector < Mat > curRes((int)cas.filters.size() / 2, Mat(vectorInput[0].size(), CV_32F)); // temp storage
 
-	parallel_for_(Range(0, (int)cas.filters.size() / 2),
-	              Parallel_process(vectorInput, nbApproximatedFilters, cas, curRes));
+    parallel_for_(Range(0, (int)cas.filters.size() / 2),
+                  Parallel_process(vectorInput, nbApproximatedFilters, cas, curRes));
 
-	for (int idxFilter = 0; idxFilter < cas.filters.size() / 2; idxFilter++) {
-		//int idxOrig = 0;
-		for (int idxOrig = 0; idxOrig < nbSum * nbMax; ++idxOrig) {
-			int idxSum = idxOrig / nbMax;
-			int idxMax = idxOrig % nbMax;
+    for (int idxFilter = 0; idxFilter < cas.filters.size() / 2; idxFilter++) {
+        //int idxOrig = 0;
+        for (int idxOrig = 0; idxOrig < nbSum * nbMax; ++idxOrig) {
+            int idxSum = idxOrig / nbMax;
+            int idxMax = idxOrig % nbMax;
 
-			if (idxFilter == 0) {
-				res[idxSum][idxMax] =
-						cas.coeffs[idxOrig][idxFilter] *
-						curRes[idxFilter].clone();
-			} else {
-				res[idxSum][idxMax] =
-						res[idxSum][idxMax] +
-						cas.coeffs[idxOrig][idxFilter] * curRes[idxFilter];
-			}
+            if (idxFilter == 0) {
+                res[idxSum][idxMax] =
+                        cas.coeffs[idxOrig][idxFilter] *
+                        curRes[idxFilter].clone();
+            } else {
+                res[idxSum][idxMax] =
+                        res[idxSum][idxMax] +
+                        cas.coeffs[idxOrig][idxFilter] * curRes[idxFilter];
+            }
 
-		}
-	}
+        }
+    }
 
-	// add the bias
-	int idxOrig = 0;
-	for (int idxSum = 0; idxSum < nbSum; ++idxSum) {
-		for (int idxMax = 0; idxMax < nbMax; ++idxMax) {
-			res[idxSum][idxMax] += cas.bias[idxOrig];
-			idxOrig++;
-		}
-	}
+    // add the bias
+    int idxOrig = 0;
+    for (int idxSum = 0; idxSum < nbSum; ++idxSum) {
+        for (int idxMax = 0; idxMax < nbMax; ++idxMax) {
+            res[idxSum][idxMax] += cas.bias[idxOrig];
+            idxOrig++;
+        }
+    }
 
-	return res;
+    return res;
 }
 
 
@@ -640,85 +627,83 @@ void getScoresandCombine_Approx(const TILDEobjects & cas,
                                 Mat *output)
 {
 
-	//const vector < float >param = cas.parameters;
-	if (cas.parameters.size()<6) {
-		LOGE("Not enough parameters !");
-	}
+    //const vector < float >param = cas.parameters;
+    if (cas.parameters.size()<6) {
+        LOGE("Not enough parameters !");
+    }
 
-	int nbMax = cas.parameters[1];	//4
-	int nbSum = cas.parameters[2];	//4
-	int nbOriginalFilters = nbMax * nbSum;
-	int nbApproximatedFilters = cas.parameters[3];	//4
-	int nbChannels = cas.parameters[4];	//6
-	int sizeFilters = cas.parameters[5];	//21
-	//--------------------
+    int nbMax = cas.parameters[1];  //4
+    int nbSum = cas.parameters[2];  //4
+    int nbOriginalFilters = nbMax * nbSum;
+    int nbApproximatedFilters = cas.parameters[3];  //4
+    int nbChannels = cas.parameters[4]; //6
+    int sizeFilters = cas.parameters[5];    //21
+    //--------------------
 
-	*output = Mat::zeros(vectorInput[0].size(), CV_32F);
+    *output = Mat::zeros(vectorInput[0].size(), CV_32F);
 
-	//vector < vector < Mat > >res(nbSum,vector < Mat >(nbMax,Mat(vectorInput[0].size(), CV_32F, cvScalarAll(0)).clone()));//,
-	vector < vector < Mat > >res(nbSum,vector < Mat >(nbMax));
+    //vector < vector < Mat > >res(nbSum,vector < Mat >(nbMax,Mat(vectorInput[0].size(), CV_32F, cvScalarAll(0)).clone()));//,
+    vector < vector < Mat > >res(nbSum,vector < Mat >(nbMax));
 
-	for (int idxOrig = 0; idxOrig < nbSum * nbMax; ++idxOrig)
-	{
-		int idxSum = idxOrig / nbMax;
-		int idxMax = idxOrig % nbMax;
+    for (int idxOrig = 0; idxOrig < nbSum * nbMax; ++idxOrig)
+    {
+        int idxSum = idxOrig / nbMax;
+        int idxMax = idxOrig % nbMax;
 
-		res[idxSum][idxMax] =  Mat::zeros(vectorInput[0].size(), CV_32F);
-	}
-	// calculate separable responses
-	int idxSum = 0;
-	int idxMax = 0;
+        res[idxSum][idxMax] =  Mat::zeros(vectorInput[0].size(), CV_32F);
+    }
+    // calculate separable responses
+    int idxSum = 0;
+    int idxMax = 0;
 
-	vector < Mat > curRes((int)cas.filters.size() / 2, Mat::zeros(vectorInput[0].size(), CV_32F));	// temp storage
+    vector < Mat > curRes((int)cas.filters.size() / 2, Mat::zeros(vectorInput[0].size(), CV_32F));  // temp storage
 
-	parallel_for_(Range(0, (int)cas.filters.size() / 2),
-	              Parallel_process(vectorInput, nbApproximatedFilters, cas, curRes));
-
-
-	//if (false)
-	{
-		Mat maxVal;
-		int count = 0;
-		for (int idxOrig = 0; idxOrig < nbSum * nbMax; ++idxOrig)
-		{
-			int idxSum = idxOrig / nbMax;
-			int idxMax = idxOrig % nbMax;
-
-//			
-			for (int idxFilter = 0; idxFilter < cas.filters.size() / 2; idxFilter++)
-			{
-				cv::scaleAdd(curRes[idxFilter], cas.coeffs[idxOrig][idxFilter], res[idxSum][idxMax],
-				             res[idxSum][idxMax]);
-			}
-
-			cv::add(res[idxSum][idxMax], cas.bias[idxMax + idxSum*nbMax], res[idxSum][idxMax]);
-
-			if (idxOrig % nbMax == 0)
-				maxVal = res[idxSum][idxMax];
-			else
-				maxVal = max(res[idxSum][idxMax],maxVal);
-
-			if ((idxOrig+1) % nbMax == 0)//the last one
-			{
-//				// sign and sum
-//				*output = (idxSum % 2 == 0 ? -maxVal : maxVal) + *output;
-				float sign_delta = (idxSum % 2 == 0 ? -1. : 1.);
-				cv::scaleAdd(maxVal, sign_delta, *output, *output);
-			}
-		}
+    parallel_for_(Range(0, (int)cas.filters.size() / 2), Parallel_process(vectorInput, nbApproximatedFilters, cas, curRes));
 
 
-	}
+    //if (false)
+    {
+        Mat maxVal;
+        int count = 0;
+        for (int idxOrig = 0; idxOrig < nbSum * nbMax; ++idxOrig)
+        {
+            int idxSum = idxOrig / nbMax;
+            int idxMax = idxOrig % nbMax;
+
+//          
+            for (int idxFilter = 0; idxFilter < cas.filters.size() / 2; idxFilter++)
+            {
+                cv::scaleAdd(curRes[idxFilter], cas.coeffs[idxOrig][idxFilter], res[idxSum][idxMax], res[idxSum][idxMax]);
+            }
+
+            cv::add(res[idxSum][idxMax], cas.bias[idxMax + idxSum*nbMax], res[idxSum][idxMax]);
+
+            if (idxOrig % nbMax == 0)
+                maxVal = res[idxSum][idxMax];
+            else
+                maxVal = max(res[idxSum][idxMax],maxVal);
+
+            if ((idxOrig+1) % nbMax == 0)//the last one
+            {
+//              // sign and sum
+//              *output = (idxSum % 2 == 0 ? -maxVal : maxVal) + *output;
+                float sign_delta = (idxSum % 2 == 0 ? -1. : 1.);
+                cv::scaleAdd(maxVal, sign_delta, *output, *output);
+            }
+        }
 
 
-	//post process
-	const float stdv = 2;
-	const int sizeSmooth = 5 * stdv * 2 + 1;
-	GaussianBlur(*output, *output, Size(sizeSmooth, sizeSmooth), stdv, stdv);
+    }
 
 
-	if (threshold != -numeric_limits<float>::infinity())
-		*output = max(*output, threshold);
+    //post process
+    const float stdv = 2;
+    const int sizeSmooth = 5 * stdv * 2 + 1;
+    GaussianBlur(*output, *output, Size(sizeSmooth, sizeSmooth), stdv, stdv);
+
+
+    if (threshold != -numeric_limits<float>::infinity())
+        *output = max(*output, threshold);
 
 }
 
@@ -726,105 +711,114 @@ void getScoresandCombine_Approx(const TILDEobjects & cas,
 
 
 vector < vector < lfilter > >getTILDENonApproxFilters(const string & name, void *_p)
+/* 
+ * input:
+ * name: filters path
+ *
+ * output:
+ * _p: vector of parameters
+ * vector< vector<lfilter> >: set of linear filters
+ * */
 {
-	vector < float >*param = (vector < float >*)_p;
-	vector < vector < lfilter > >res;
+    vector < float >*param = (vector < float >*)_p;
+    vector < vector < lfilter > >res;
 
-	std::ifstream fic(name, ios::in);
-	bool isOpen = fic.is_open();
-	if (!isOpen) {
-		LOGE("Cannot open filters");
-	}
+    std::ifstream fic(name, ios::in);
+    bool isOpen = fic.is_open();
+    if (!isOpen) {
+        LOGE("Cannot open filters");
+    }
 
-	std::string lineread;
-	std::vector < std::string > tokens;
+    std::string lineread;
+    std::vector < std::string > tokens;
 
-	//get parameters
-	getline(fic, lineread);
-	tokens.clear();
-	Tokenize(lineread, tokens);
+    //get parameters
+    getline(fic, lineread);
+    tokens.clear();
+    Tokenize(lineread, tokens);
 
-	if (param != NULL)
-		for (int i = 0; i < tokens.size(); i++)
-			param->push_back(stof(delSpaces(tokens[i])));
+    /* `param` is the first line of the filter */
+    if (param != NULL)
+        for (int i = 0; i < tokens.size(); i++)
+            param->push_back(stof(delSpaces(tokens[i])));
 
-	//start processing...
-	getline(fic, lineread);
-	tokens.clear();
-	Tokenize(lineread, tokens);
-	if (tokens.size() < 2) {
-		LOGE("Wrong formating for the filters");
-	}
+    //start processing...
+    getline(fic, lineread);
+    tokens.clear();
+    Tokenize(lineread, tokens);
+    if (tokens.size() < 2) {
+        LOGE("Wrong formating for the filters");
+    }
 
-	int nbFilters = stoi(delSpaces(tokens[0]));
-	int nbChannels = stoi(delSpaces(tokens[1]));
-	int sizeFilters = stoi(delSpaces(tokens[2]));
-	int row = 0;
+    int nbFilters = stoi(delSpaces(tokens[0]));
+    int nbChannels = stoi(delSpaces(tokens[1]));
+    int sizeFilters = stoi(delSpaces(tokens[2]));
+    int row = 0;
 
-	Mat M(sizeFilters, sizeFilters, CV_32FC1);
+    Mat M(sizeFilters, sizeFilters, CV_32FC1);
 
-	vector < lfilter > myCascade;
-	lfilter myfilter;
+    vector < lfilter > myCascade;
+    lfilter myfilter;
 
-	while (getline(fic, lineread)) {
+    while (getline(fic, lineread)) {
 
-		tokens.clear();
-		Tokenize(lineread, tokens);
+        tokens.clear();
+        Tokenize(lineread, tokens);
 
-		for (int i = 0; i < sizeFilters; i++)
-			M.at < float >(row, i) = stof(delSpaces(tokens[i]));
+        for (int i = 0; i < sizeFilters; i++)
+            M.at < float >(row, i) = stof(delSpaces(tokens[i]));
 
-		if (row == sizeFilters - 1) {
-			myfilter.push_back(M);
+        if (row == sizeFilters - 1) {
+            myfilter.push_back(M);
 
-			//reset
-			M = Mat(sizeFilters, sizeFilters, CV_32FC1);
-			row = 0;
-		} else
-			row++;
+            //reset
+            M = Mat(sizeFilters, sizeFilters, CV_32FC1);
+            row = 0;
+        } else
+            row++;
 
-		if (myfilter.size() == nbChannels) {
-			//get b
-			getline(fic, lineread);
-			tokens.clear();
-			Tokenize(lineread, tokens);
+        if (myfilter.size() == nbChannels) {
+            //get b
+            getline(fic, lineread);
+            tokens.clear();
+            Tokenize(lineread, tokens);
 
-			myfilter.b = stof(delSpaces(tokens[0]));
+            myfilter.b = stof(delSpaces(tokens[0]));
 
-			myCascade.push_back(myfilter);
+            myCascade.push_back(myfilter);
 
-			myfilter = lfilter();
+            myfilter = lfilter();
 
-		}
+        }
 
-		if (myCascade.size() == nbFilters) {
-			//push cascade
-			res.push_back(myCascade);
+        if (myCascade.size() == nbFilters) {
+            //push cascade
+            res.push_back(myCascade);
 
-			//get next info
-			getline(fic, lineread);
+            //get next info
+            getline(fic, lineread);
 
-			if (fic.fail())	//eof
-				return res;
+            if (fic.fail()) //eof
+                return res;
 
-			tokens.clear();
-			Tokenize(lineread, tokens);
-			if (tokens.size() < 2) {
-				LOGE("Wrong formating for the filters");
-			}
+            tokens.clear();
+            Tokenize(lineread, tokens);
+            if (tokens.size() < 2) {
+                LOGE("Wrong formating for the filters");
+            }
 
-			nbFilters = stoi(delSpaces(tokens[0]));
-			nbChannels = stoi(delSpaces(tokens[1]));
-			sizeFilters = stoi(delSpaces(tokens[2]));
-			//--done
+            nbFilters = stoi(delSpaces(tokens[0]));
+            nbChannels = stoi(delSpaces(tokens[1]));
+            sizeFilters = stoi(delSpaces(tokens[2]));
+            //--done
 
-			//init
-			M = Mat(sizeFilters, sizeFilters, CV_32FC1);
-			myCascade.clear();
-		}
-	}
+            //init
+            M = Mat(sizeFilters, sizeFilters, CV_32FC1);
+            myCascade.clear();
+        }
+    }
 
-	return res;
+    return res;
 }
 
 vector < Point3f > applyNonApproxFilters(const Mat & indatav,
@@ -832,583 +826,607 @@ vector < Point3f > applyNonApproxFilters(const Mat & indatav,
                                          const bool useDescriptorField, const bool sortMe,
                                          const float resizeRatio,
                                          const float threshold, Mat * score)
+/* 
+ * input:
+ * indatav: image
+ * dual_cascade_filters: vector of filters
+ * useDescriptorField: default false
+ * sortMe: sort the output by their responses
+ * resizeRatio: ?
+ * threshold: ?
+ *
+ * output:
+ * vector<cv::Keypoint>: a set of TILDE feature points
+ * score: score map
+ */
 {
-	const float stdv = 2;
-	const int sizeSmooth = 5 * stdv * 2 + 1;
+    const float stdv = 2;
+    const int sizeSmooth = 5 * stdv * 2 + 1;
 
 
-	if (resizeRatio == 0)
-		LOGE("The resize ratio is zero, if you dont want any resize, use 1");
+    if (resizeRatio == 0)
+        LOGE("The resize ratio is zero, if you dont want any resize, use 1");
 
-	Mat indatav_resized = indatav;
-	if (resizeRatio != 1)
-		resize(indatav, indatav_resized, Size(0, 0), resizeRatio, resizeRatio);
+    Mat indatav_resized = indatav;
+    if (resizeRatio != 1)
+        resize(indatav, indatav_resized, Size(0, 0), resizeRatio, resizeRatio); // `Size(0,0)`: take next two args as resize ratio for cols and rows
 
-	vector < Mat > vectorInput;
-	if (useDescriptorField) {
-		vectorInput = getNormalizedDescriptorField(indatav);
-	} else {
-		vector < Mat > gradImage = getGradImage(indatav_resized);
-		vector < Mat > luvImage = getLuvImage(indatav_resized);
+    /* extract features from the input image:
+     * (gx,gy,mag,L,U,V) for each pixel */
+    vector < Mat > vectorInput;
+    if (useDescriptorField) {
+        vectorInput = getNormalizedDescriptorField(indatav);
+    } else {
+        vector < Mat > gradImage = getGradImage(indatav_resized);
+        vector < Mat > luvImage = getLuvImage(indatav_resized);
 
-		copy(gradImage.begin(), gradImage.end(), std::back_inserter(vectorInput));
-		copy(luvImage.begin(), luvImage.end(), std::back_inserter(vectorInput));
-	}
+        copy(gradImage.begin(), gradImage.end(), std::back_inserter(vectorInput));
+        copy(luvImage.begin(), luvImage.end(), std::back_inserter(vectorInput));
+    }
 
-	// filter the image using all filters
-	float fourierMultiplier =
-			dual_cascade_filters[0][0].w[0].rows * dual_cascade_filters[0][0].w[0].cols;
-	vector < vector < Mat >> cascade_responses(dual_cascade_filters.size());
-	for (int idxCascade = 0; idxCascade < dual_cascade_filters.size(); ++idxCascade) {
-		cascade_responses[idxCascade].resize(dual_cascade_filters[idxCascade].size());
-		for (int idxDepth = 0; idxDepth < dual_cascade_filters[idxCascade].size();
-		     ++idxDepth) {
-			// current multichannel filter
-			lfilter cur_filter = dual_cascade_filters[idxCascade][idxDepth];
-			// responses for each channel
-			vector < Mat > cur_responses(cur_filter.w.size());
-			// perform filtering
-			for (int idxChannel = 0; idxChannel < cur_filter.w.size(); ++idxChannel) {
-				filter2D(vectorInput[idxChannel], cur_responses[idxChannel], -1,
-				         cur_filter.w[idxChannel], Point(-1, -1), 0,
-				         BORDER_REFLECT);
-			}
-			// sum the channels up
-			Mat cur_response =
-					fourierMultiplier * sumMatArray(cur_responses) + cur_filter.b;
-			cascade_responses[idxCascade][idxDepth] = cur_response;
-		}
-	}
+    // filter the image using all filters
+    float fourierMultiplier = dual_cascade_filters[0][0].w[0].rows * dual_cascade_filters[0][0].w[0].cols;
+    vector < vector < Mat >> cascade_responses(dual_cascade_filters.size());
+    for (int idxCascade = 0; idxCascade < dual_cascade_filters.size(); ++idxCascade) {
+        cascade_responses[idxCascade].resize(dual_cascade_filters[idxCascade].size());
+        for (int idxDepth = 0; idxDepth < dual_cascade_filters[idxCascade].size(); ++idxDepth) {
+            // current multichannel filter
+            lfilter cur_filter = dual_cascade_filters[idxCascade][idxDepth];
+            // current multichannel response (responses for each channel)
+            vector < Mat > cur_responses(cur_filter.w.size());
+            // perform filtering (different kernel for different channel)
+            for (int idxChannel = 0; idxChannel < cur_filter.w.size(); ++idxChannel) {
+                filter2D(vectorInput[idxChannel], cur_responses[idxChannel], -1,
+                         cur_filter.w[idxChannel], Point(-1, -1), 0,
+                         BORDER_REFLECT);
+            }
+            // sum the channels up
+            Mat cur_response = fourierMultiplier * sumMatArray(cur_responses) + cur_filter.b;
+            cascade_responses[idxCascade][idxDepth] = cur_response;
+        }
+    }
 
-	// apply the cascade structure and retrieve single channel response image
-	Mat outputScore;
-	for (int idxCascade = 0; idxCascade < dual_cascade_filters.size(); ++idxCascade) {
-		Mat respImageCascade = cascade_responses[idxCascade][0];
-		for (int idxDepth = 1; idxDepth < dual_cascade_filters[idxCascade].size();
-		     ++idxDepth) {
-			respImageCascade =
-					max(respImageCascade, cascade_responses[idxCascade][idxDepth]);
-		}
-		respImageCascade = idxCascade % 2 == 0 ? -respImageCascade : respImageCascade;
-		if (idxCascade == 0) {
-			outputScore = respImageCascade;
-		} else {
-			outputScore = respImageCascade + outputScore;
-		}
-	}
+    // apply the cascade structure and retrieve single channel response image
+    /* implementing equation 1 on the paper:
+     * - idxCascade: n;
+     * - idxDepth: m;
+     * */
+    Mat outputScore;
+    for (int idxCascade = 0; idxCascade < dual_cascade_filters.size(); ++idxCascade) {
+        Mat respImageCascade = cascade_responses[idxCascade][0];
+        for (int idxDepth = 1; idxDepth < dual_cascade_filters[idxCascade].size(); ++idxDepth) {
+            respImageCascade = max(respImageCascade, cascade_responses[idxCascade][idxDepth]); // per-element max of two arrays
+        }
+        respImageCascade = idxCascade % 2 == 0 ? -respImageCascade : respImageCascade; /* multiplying $\delta_n$ */
+        /* summation over n */
+        if (idxCascade == 0) {
+            outputScore = respImageCascade;
+        } else {
+            outputScore = respImageCascade + outputScore;
+        }
+    }
 
-	GaussianBlur(outputScore, outputScore, Size(sizeSmooth, sizeSmooth), stdv, stdv);
+    GaussianBlur(outputScore, outputScore, Size(sizeSmooth, sizeSmooth), stdv, stdv);
 
-	if (threshold > std::numeric_limits<float>::infinity())
-		outputScore = max(outputScore, threshold);
+    if (threshold > std::numeric_limits<float>::infinity())
+        outputScore = max(outputScore, threshold);
 
-	if (score != NULL)
-		*score = outputScore.clone();
+    /* if `score` isn't the default NULL pointer, it means we want to output `score`. */
+    if (score != NULL)
+        *score = outputScore.clone();
 
-	// perform non-max suppression
-	vector < Point3f > res_with_score = NonMaxSup(outputScore);
+    // perform non-max suppression
+    /* for each score in `outputScore`, keep it if it is the max of its neighbouring 8 scores
+     * each elem of `res_with_score`: (idx_col, idx_row, response_value)
+     */
+    vector < Point3f > res_with_score = NonMaxSup(outputScore);
 
-	if (sortMe)
-		std::sort(res_with_score.begin(), res_with_score.end(),
-		          [](const Point3f & a, const Point3f & b) {
-		              return a.z > b.z;}
-		);
+    if (sortMe)
+        std::sort(res_with_score.begin(), res_with_score.end(),
+                  /* lambda expression */
+                  [](const Point3f & a, const Point3f & b) {
+                      return a.z > b.z;}
+        );
 
-	// resize back
-	for (int i = 0; i < res_with_score.size(); ++i) {
-		res_with_score[i].x = res_with_score[i].x / resizeRatio;
-		res_with_score[i].y = res_with_score[i].y / resizeRatio;
-	}
+    // resize back
+    /* for resizing, here just need to adjust the coordinates */
+    for (int i = 0; i < res_with_score.size(); ++i) {
+        res_with_score[i].x = res_with_score[i].x / resizeRatio;
+        res_with_score[i].y = res_with_score[i].y / resizeRatio;
+    }
 
-	return res_with_score;
+    return res_with_score;
 }
 
-
+/* tokenize `mystring` into a vector of tokens `tok` by seperator `sep` */
 void Tokenize(const std::string & mystring, std::vector < std::string > &tok,
               const std::string & sep, int lp, int p)
+/* lp: starting index of a token
+ * p: ending index of a token */
 {
-	lp = mystring.find_first_not_of(sep, p);
-	p = mystring.find_first_of(sep, lp);
-	if (std::string::npos != p || std::string::npos != lp) {
-		tok.push_back(mystring.substr(lp, p - lp));
-		Tokenize(mystring, tok, sep, lp, p);
-	}
+    lp = mystring.find_first_not_of(sep, p);
+    p = mystring.find_first_of(sep, lp);
+    if (std::string::npos != p || std::string::npos != lp) {
+        tok.push_back(mystring.substr(lp, p - lp));
+        Tokenize(mystring, tok, sep, lp, p);
+    }
 }
 
+/* remove spaces from both side of string (no space inside the string) */
 std::string delSpaces(std::string & str)
 {
-	std::stringstream trim;
-	trim << str;
-	trim >> str;
+    std::stringstream trim;
+    trim << str;
+    trim >> str;
 
-	return str;
+    return str;
 }
 
 Mat convBGR2PlaneWiseRGB(const Mat & in)
 {
-	Mat res = in.clone();
+    Mat res = in.clone();
 
-	int numel = in.rows * in.cols;
-	for (int j = 0; j < in.rows; j++) {
-		for (int i = 0; i < in.cols; i++) {
-			((float *)res.data)[2 * numel + (j * in.cols + i)] = ((float *)in.data)[3 * (j * in.cols + i) + 0];	// B
-			((float *)res.data)[1 * numel + (j * in.cols + i)] = ((float *)in.data)[3 * (j * in.cols + i) + 1];	// G
-			((float *)res.data)[0 * numel + (j * in.cols + i)] = ((float *)in.data)[3 * (j * in.cols + i) + 2];	// R
-		}
-	}
+    int numel = in.rows * in.cols;
+    for (int j = 0; j < in.rows; j++) {
+        for (int i = 0; i < in.cols; i++) {
+            ((float *)res.data)[2 * numel + (j * in.cols + i)] = ((float *)in.data)[3 * (j * in.cols + i) + 0]; // B
+            ((float *)res.data)[1 * numel + (j * in.cols + i)] = ((float *)in.data)[3 * (j * in.cols + i) + 1]; // G
+            ((float *)res.data)[0 * numel + (j * in.cols + i)] = ((float *)in.data)[3 * (j * in.cols + i) + 2]; // R
+        }
+    }
 
-	return res;
+    return res;
 }
 
 Mat convPlaneWiseRGB2RGB(const Mat & in)
 {
-	Mat res = in.clone();
+    Mat res = in.clone();
 
-	int numel = in.rows * in.cols;
-	for (int j = 0; j < in.rows; j++) {
-		for (int i = 0; i < in.cols; i++) {
-			((float *)res.data)[3 * (j * in.cols + i) + 0] = ((float *)in.data)[0 * numel + (j * in.cols + i)];	// R
-			((float *)res.data)[3 * (j * in.cols + i) + 1] = ((float *)in.data)[1 * numel + (j * in.cols + i)];	// G
-			((float *)res.data)[3 * (j * in.cols + i) + 2] = ((float *)in.data)[2 * numel + (j * in.cols + i)];	// B
-		}
-	}
+    int numel = in.rows * in.cols;
+    for (int j = 0; j < in.rows; j++) {
+        for (int i = 0; i < in.cols; i++) {
+            ((float *)res.data)[3 * (j * in.cols + i) + 0] = ((float *)in.data)[0 * numel + (j * in.cols + i)]; // R
+            ((float *)res.data)[3 * (j * in.cols + i) + 1] = ((float *)in.data)[1 * numel + (j * in.cols + i)]; // G
+            ((float *)res.data)[3 * (j * in.cols + i) + 2] = ((float *)in.data)[2 * numel + (j * in.cols + i)]; // B
+        }
+    }
 
-	return res;
+    return res;
 }
 
 Mat sumMatArray(const vector < Mat > &MatArray)
 {
-	Mat res = MatArray[0].clone();
+    Mat res = MatArray[0].clone();
 
-	for (int idxMat = 1; idxMat < MatArray.size(); ++idxMat) {
-		res += MatArray[idxMat];
-	}
+    for (int idxMat = 1; idxMat < MatArray.size(); ++idxMat) {
+        res += MatArray[idxMat];
+    }
 
-	return res;
+    return res;
 }
 
 
 vector < Mat > getGradImage(const Mat & input_color_image)
 {
-	if (input_color_image.channels() != 3) {
-		LOGE("Need a 3-channel image (getGradImage)");
-	}
-	//the output
-	vector < Mat > gradImage(3);
+    if (input_color_image.channels() != 3) {
+        LOGE("Need a 3-channel image (getGradImage)");
+    }
+    //the output
+    vector < Mat > gradImage(3);
 
-	vector < Mat > color_channels(3);
-	vector < Mat > gx(3);
-	vector < Mat > gy(3);
+    vector < Mat > color_channels(3);
+    vector < Mat > gx(3);
+    vector < Mat > gy(3);
 
-	// The derivative5 kernels
-	Mat d1 = (Mat_ < float >(1, 5) << 0.109604, 0.276691, 0.000000, -0.276691, -0.109604);
-	Mat d1T = (Mat_ < float >(5, 1) << 0.109604, 0.276691, 0.000000, -0.276691, -0.109604);
-	Mat p = (Mat_ < float >(1, 5) << 0.037659, 0.249153, 0.426375, 0.249153, 0.037659);
-	Mat pT = (Mat_ < float >(5, 1) << 0.037659, 0.249153, 0.426375, 0.249153, 0.037659);
+    // The derivative5 kernels
+    Mat d1 = (Mat_ < float >(1, 5) << 0.109604, 0.276691, 0.000000, -0.276691, -0.109604);
+    Mat d1T = (Mat_ < float >(5, 1) << 0.109604, 0.276691, 0.000000, -0.276691, -0.109604);
+    Mat p = (Mat_ < float >(1, 5) << 0.037659, 0.249153, 0.426375, 0.249153, 0.037659);
+    Mat pT = (Mat_ < float >(5, 1) << 0.037659, 0.249153, 0.426375, 0.249153, 0.037659);
 
-	// split the channels into each color channel
-	split(input_color_image, color_channels);
-	// prepare output
-	for (int idxC = 0; idxC < 3; ++idxC) {
-		gradImage[idxC].create(color_channels[0].rows, color_channels[0].cols, CV_32F);
-	}
-	//	return gradImage;
+    // split the channels into each color channel
+    split(input_color_image, color_channels);
+    // prepare output
+    for (int idxC = 0; idxC < 3; ++idxC) {
+        gradImage[idxC].create(color_channels[0].rows, color_channels[0].cols, CV_32F);
+    }
+    //  return gradImage;
 
-	// for each channel do the derivative 5 
-	for (int idxC = 0; idxC < 3; ++idxC) {
-		sepFilter2D(color_channels[idxC], gx[idxC], CV_32F, d1, p, Point(-1, -1), 0,
-		            BORDER_REFLECT);
-		sepFilter2D(color_channels[idxC], gy[idxC], CV_32F, p, d1, Point(-1, -1), 0,
-		            BORDER_REFLECT);
-		// since we do the other direction, just flip signs
-		gx[idxC] = -gx[idxC];
-		gy[idxC] = -gy[idxC];
-	}
+    // for each channel do the derivative 5 
+    for (int idxC = 0; idxC < 3; ++idxC) {
+        sepFilter2D(color_channels[idxC], gx[idxC], CV_32F, d1, p, Point(-1, -1), 0,
+                    BORDER_REFLECT);
+        sepFilter2D(color_channels[idxC], gy[idxC], CV_32F, p, d1, Point(-1, -1), 0,
+                    BORDER_REFLECT);
+        // since we do the other direction, just flip signs
+        gx[idxC] = -gx[idxC];
+        gy[idxC] = -gy[idxC];
+    }
 
-	// the magnitude image
-	vector < Mat > mag(3);
-	for (int idxC = 0; idxC < 3; ++idxC) {
-		sqrt(gx[idxC].mul(gx[idxC]) + gy[idxC].mul(gy[idxC]), mag[idxC]);
-	}
+    // the magnitude image
+    vector < Mat > mag(3);
+    for (int idxC = 0; idxC < 3; ++idxC) {
+        sqrt(gx[idxC].mul(gx[idxC]) + gy[idxC].mul(gy[idxC]), mag[idxC]);
+    }
 
-	// Get Max idx using Magnitude
-	Mat maxIdxMat(mag[0].rows, mag[0].cols, CV_32F);
-	float curVal, maxVal; int maxIdx;
-	for (int i = 0; i < mag[0].rows; i++)
-	{
-		float* pixelin1[3];float* pixelin2[3];float* pixelin3[3];
-		for (int idxC = 0; idxC < 3; ++idxC)
-		{
-			pixelin1[idxC] = gx[idxC].ptr<float>(i);  // point to first color in row
-			pixelin2[idxC] = gy[idxC].ptr<float>(i);  // point to first color in row
-			pixelin3[idxC] = mag[idxC].ptr<float>(i);  // point to first color in row
-		}
+    // Get Max idx using Magnitude (doesn't use)
+    Mat maxIdxMat(mag[0].rows, mag[0].cols, CV_32F);
+    /* for each pixel of the input image,
+     * take (gx,gy,mag) of the channel with largest gradient magnitude
+     * as output (features) */
+    float curVal, maxVal; int maxIdx;
+    for (int i = 0; i < mag[0].rows; i++)
+    {
+        float* pixelin1[3];float* pixelin2[3];float* pixelin3[3];
+        for (int idxC = 0; idxC < 3; ++idxC)
+        {
+            pixelin1[idxC] = gx[idxC].ptr<float>(i);  // point to first color in row
+            pixelin2[idxC] = gy[idxC].ptr<float>(i);  // point to first color in row
+            pixelin3[idxC] = mag[idxC].ptr<float>(i);  // point to first color in row
+        }
 
-		// 	float* pixelin1 = gx[idxC].ptr<float>(i);  // point to first color in row
-		// 	float* pixelin1 = gx[idxC].ptr<float>(i);  // point to first color in row
+        //  float* pixelin1 = gx[idxC].ptr<float>(i);  // point to first color in row
+        //  float* pixelin1 = gx[idxC].ptr<float>(i);  // point to first color in row
 
-		// float* pixelout = maxIdxMat.ptr<float>(i);  // point to first color in row
+        // float* pixelout = maxIdxMat.ptr<float>(i);  // point to first color in row
 
-		float* pixelout1 = gradImage[0].ptr<float>(i);  // point to first color in row
-		float* pixelout2 = gradImage[1].ptr<float>(i);  // point to first color in row
-		float* pixelout3 = gradImage[2].ptr<float>(i);  // point to first color in row
+        float* pixelout1 = gradImage[0].ptr<float>(i);  // point to first color in row
+        float* pixelout2 = gradImage[1].ptr<float>(i);  // point to first color in row
+        float* pixelout3 = gradImage[2].ptr<float>(i);  // point to first color in row
 
-		for (int j = 0; j < mag[0].cols; j++)
-		{
-			maxIdx = 0;
-			maxVal = 0;
-			for (int idxC = 0; idxC < 3; ++idxC)
-			{
-				curVal = *pixelin3[idxC];
-				if (maxVal < curVal) {
-					maxIdx = idxC;
-					maxVal = curVal;
-				}
-			}
-			//*pixelout++ = maxIdx;
+        for (int j = 0; j < mag[0].cols; j++)
+        {
+            maxIdx = 0;
+            maxVal = 0;
+            for (int idxC = 0; idxC < 3; ++idxC)
+            {
+                curVal = *pixelin3[idxC];
+                if (maxVal < curVal) {
+                    maxIdx = idxC;
+                    maxVal = curVal;
+                }
+            }
+            //*pixelout++ = maxIdx;
 
-			*pixelout1++ = *pixelin1[maxIdx] * 0.5 + 128.0;
-			*pixelout2++ = *pixelin2[maxIdx] * 0.5 + 128.0;
-			*pixelout3++ = *pixelin3[maxIdx];
+            *pixelout1++ = *pixelin1[maxIdx] * 0.5 + 128.0;
+            *pixelout2++ = *pixelin2[maxIdx] * 0.5 + 128.0;
+            *pixelout3++ = *pixelin3[maxIdx];
 
 
 
-			//next in
-			for (int idxC = 0; idxC < 3; ++idxC)
-			{
-				pixelin1[idxC]++;
-				pixelin2[idxC]++;
-				pixelin3[idxC]++;
-			}
-		}
-	}
+            //next in
+            for (int idxC = 0; idxC < 3; ++idxC)
+            {
+                pixelin1[idxC]++;
+                pixelin2[idxC]++;
+                pixelin3[idxC]++;
+            }
+        }
+    }
 
-	// int idxC;
-	// // Select and save the max channel
-	// for (int i = 0; i < mag[0].rows; i++) {
-	// 	float* pixelin1 = gx[idxC].ptr<float>(i);  // point to first color in row
-	// 	float* pixelin1 = gx[idxC].ptr<float>(i);  // point to first color in row
-	// 	float* pixelin1 = gradImage[0].ptr<float>(i);  // point to first color in row
+    // int idxC;
+    // // Select and save the max channel
+    // for (int i = 0; i < mag[0].rows; i++) {
+    //  float* pixelin1 = gx[idxC].ptr<float>(i);  // point to first color in row
+    //  float* pixelin1 = gx[idxC].ptr<float>(i);  // point to first color in row
+    //  float* pixelin1 = gradImage[0].ptr<float>(i);  // point to first color in row
 
-	// 	float* pixelout1 = gradImage[0].ptr<float>(i);  // point to first color in row
-	// 	float* pixelout2 = gradImage[1].ptr<float>(i);  // point to first color in row
-	// 	float* pixelout3 = gradImage[2].ptr<float>(i);  // point to first color in row
-	// 	for (int j = 0; j < mag[0].cols; j++) {
-	// 		idxC = maxIdxMat.at < float >(i, j);
-	// 		*pixelout1++ = gx[idxC].at < float >(i, j) * 0.5 + 128.0;
-	// 		*pixelout2++ = gy[idxC].at < float >(i, j) * 0.5 + 128.0;
-	// 		*pixelout3++ = mag[idxC].at < float >(i, j);
-	// 	}
-	// }
+    //  float* pixelout1 = gradImage[0].ptr<float>(i);  // point to first color in row
+    //  float* pixelout2 = gradImage[1].ptr<float>(i);  // point to first color in row
+    //  float* pixelout3 = gradImage[2].ptr<float>(i);  // point to first color in row
+    //  for (int j = 0; j < mag[0].cols; j++) {
+    //      idxC = maxIdxMat.at < float >(i, j);
+    //      *pixelout1++ = gx[idxC].at < float >(i, j) * 0.5 + 128.0;
+    //      *pixelout2++ = gy[idxC].at < float >(i, j) * 0.5 + 128.0;
+    //      *pixelout3++ = mag[idxC].at < float >(i, j);
+    //  }
+    // }
 
-	return gradImage;
+    return gradImage;
 }
 
 
 vector < Mat > getLuvImage(const Mat & input_color_image)
 {
-	if (input_color_image.channels() != 3) {
-		LOGE("Need a 3-channnel image (getLuvImage)");
-	}
-	vector < Mat > luvImage(3);
-	for (int idxC = 0; idxC < 3; ++idxC) {
-		luvImage[idxC].create(input_color_image.rows, input_color_image.cols, CV_32F);
-	}
+    if (input_color_image.channels() != 3) {
+        LOGE("Need a 3-channnel image (getLuvImage)");
+    }
+    vector < Mat > luvImage(3);
+    for (int idxC = 0; idxC < 3; ++idxC) {
+        luvImage[idxC].create(input_color_image.rows, input_color_image.cols, CV_32F);
+    }
 
-	//init
-	const float y0=(float) ((6.0/29)*(6.0/29)*(6.0/29));
-	const float a= (float) ((29.0/3)*(29.0/3)*(29.0/3));
-	const double XYZ[3][3] = {  {  0.430574,  0.341550,  0.178325 },
-	                            {  0.222015,  0.706655,  0.071330 },
-	                            {  0.020183,  0.129553,  0.939180 }   };
+    //init
+    const float y0=(float) ((6.0/29)*(6.0/29)*(6.0/29));
+    const float a= (float) ((29.0/3)*(29.0/3)*(29.0/3));
+    const double XYZ[3][3] = {  {  0.430574,  0.341550,  0.178325 },
+                                {  0.222015,  0.706655,  0.071330 },
+                                {  0.020183,  0.129553,  0.939180 }   };
 
-	const double Un_prime   = 0.197833;
-	const double Vn_prime   = 0.468331;
-	const double maxi 		= 1.0/270;
-	const double minu 		= -88*maxi;
-	const double minv 		= -134*maxi;
-	const double Lt     = 0.008856;
-	static float lTable[1064];
-	for(int i=0; i<1025; i++)
-	{
-		float y = (float) (i/1024.0);
-		float l = y>y0 ? 116*(float)pow((double)y,1.0/3.0)-16 : y*a;
-		lTable[i] = l*maxi;
-	}
+    const double Un_prime   = 0.197833;
+    const double Vn_prime   = 0.468331;
+    const double maxi       = 1.0/270;
+    const double minu       = -88*maxi;
+    const double minv       = -134*maxi;
+    const double Lt     = 0.008856;
+    static float lTable[1064];
+    for(int i=0; i<1025; i++)
+    {
+        float y = (float) (i/1024.0);
+        float l = y>y0 ? 116*(float)pow((double)y,1.0/3.0)-16 : y*a;
+        lTable[i] = l*maxi;
+    }
 
-	// Get Max idx using Magnitude
-	//  cv::parallel_for( cv::BlockedRange (0, input_color_image.rows), [=] (const cv::Range &r)
-	// {
+    // Get Max idx using Magnitude
+    //  cv::parallel_for( cv::BlockedRange (0, input_color_image.rows), [=] (const cv::Range &r)
+    // {
 
-	// 	Rect roi(0, r.begin(), input_color_image.cols, r.end() - r.begin());
-	Mat in(input_color_image);
-
-
-	Mat out1(luvImage[0]);
-	Mat out2(luvImage[1]);
-	Mat out3(luvImage[2]);
+    //  Rect roi(0, r.begin(), input_color_image.cols, r.end() - r.begin());
+    Mat in(input_color_image);
 
 
-	//Rect roi(0, r.begin(), vectorInput[idxDim].cols, r.end() - r.begin());
-	for (int i = 0; i < in.rows; i++)
-	{
-		uchar* pixelin = in.ptr<uchar>(i);  // point to first color in row
-		float* pixelout1 = out1.ptr<float>(i);  // point to first color in row
-		float* pixelout2 = out2.ptr<float>(i);  // point to first color in row
-		float* pixelout3 = out3.ptr<float>(i);  // point to first color in row
-		for (int j = 0; j < in.cols; j++)//row
-		{
-			//cv::Vec3b rgb = in.at<cv::Vec3b>(j,i);
-			float b = *pixelin++ / 255.0f;
-			float g = *pixelin++ / 255.0f;
-			float r = *pixelin++ / 255.0f;
+    Mat out1(luvImage[0]);
+    Mat out2(luvImage[1]);
+    Mat out3(luvImage[2]);
+
+
+    //Rect roi(0, r.begin(), vectorInput[idxDim].cols, r.end() - r.begin());
+    for (int i = 0; i < in.rows; i++)
+    {
+        uchar* pixelin = in.ptr<uchar>(i);  // point to first color in row
+        float* pixelout1 = out1.ptr<float>(i);  // point to first color in row
+        float* pixelout2 = out2.ptr<float>(i);  // point to first color in row
+        float* pixelout3 = out3.ptr<float>(i);  // point to first color in row
+        for (int j = 0; j < in.cols; j++)//row
+        {
+            //cv::Vec3b rgb = in.at<cv::Vec3b>(j,i);
+            float b = *pixelin++ / 255.0f;
+            float g = *pixelin++ / 255.0f;
+            float r = *pixelin++ / 255.0f;
 
 
 
-			//RGB to LUV conversion
+            //RGB to LUV conversion
 
-			//delcare variables
-			float  x, y, z, u_prime, v_prime, constant, L, u, v;
+            //delcare variables
+            float  x, y, z, u_prime, v_prime, constant, L, u, v;
 
-			//convert RGB to XYZ...
-			x       = XYZ[0][0]*r + XYZ[0][1]*g + XYZ[0][2]*b;
-			y       = XYZ[1][0]*r + XYZ[1][1]*g + XYZ[1][2]*b;
-			z       = XYZ[2][0]*r + XYZ[2][1]*g + XYZ[2][2]*b;
+            //convert RGB to XYZ...
+            x       = XYZ[0][0]*r + XYZ[0][1]*g + XYZ[0][2]*b;
+            y       = XYZ[1][0]*r + XYZ[1][1]*g + XYZ[1][2]*b;
+            z       = XYZ[2][0]*r + XYZ[2][1]*g + XYZ[2][2]*b;
 
-			//convert XYZ to LUV...
+            //convert XYZ to LUV...
 
-			//compute ltable(y*1024)
-			L = lTable[(int)(y*1024)];
+            //compute ltable(y*1024)
+            L = lTable[(int)(y*1024)];
 
-			//compute u_prime and v_prime
-			constant    = 1/(x + 15 * y + 3 * z + 1e-35);   //=z
+            //compute u_prime and v_prime
+            constant    = 1/(x + 15 * y + 3 * z + 1e-35);   //=z
 
-			u_prime = (4 * x) * constant;   //4*x*z
-			v_prime = (9 * y) * constant;
+            u_prime = (4 * x) * constant;   //4*x*z
+            v_prime = (9 * y) * constant;
 
 
-			//compute u* and v*
-			u = (float) (13 * L * (u_prime - Un_prime)) - minu;
-			v = (float) (13 * L * (v_prime - Vn_prime)) - minv;
+            //compute u* and v*
+            u = (float) (13 * L * (u_prime - Un_prime)) - minu;
+            v = (float) (13 * L * (v_prime - Vn_prime)) - minv;
 
-			// out1.at<float>(j,i) = L*270*2.55;
-			// out2.at<float>(j,i) = ((u*270-88)+ 134.0)* 255.0 / 354.0;
-			// out3.at<float>(j,i) = ((v*270-134)+ 140.0)* 255.0 / 256.0;
+            // out1.at<float>(j,i) = L*270*2.55;
+            // out2.at<float>(j,i) = ((u*270-88)+ 134.0)* 255.0 / 354.0;
+            // out3.at<float>(j,i) = ((v*270-134)+ 140.0)* 255.0 / 256.0;
 
-			*pixelout1++ = L*270*2.55;
-			*pixelout2++ = ((u*270-88)+ 134.0)* 255.0 / 354.0;
-			*pixelout3++ = ((v*270-134)+ 140.0)* 255.0 / 256.0;
+            *pixelout1++ = L*270*2.55;
+            *pixelout2++ = ((u*270-88)+ 134.0)* 255.0 / 354.0;
+            *pixelout3++ = ((v*270-134)+ 140.0)* 255.0 / 256.0;
 
-		}
-	}
+        }
+    }
 
-	//});
+    //});
 
-	return luvImage;
+    return luvImage;
 }
 
 
 void ComputeImageDerivatives(const cv::Mat & image, cv::Mat & imageDx, cv::Mat & imageDy)
 {
-	int ddepth = CV_32F;	//same image depth as source
-	double scale = 1 / 32.0;	// normalize wrt scharr mask for having exact gradient
-	double delta = 0;
+    int ddepth = CV_32F;    //same image depth as source
+    double scale = 1 / 32.0;    // normalize wrt scharr mask for having exact gradient
+    double delta = 0;
 
-	Scharr(image, imageDx, ddepth, 1, 0, scale, delta, BORDER_REFLECT);
-	Scharr(image, imageDy, ddepth, 0, 1, scale, delta, BORDER_REFLECT);
+    Scharr(image, imageDx, ddepth, 1, 0, scale, delta, BORDER_REFLECT);
+    Scharr(image, imageDy, ddepth, 0, 1, scale, delta, BORDER_REFLECT);
 }
 
 void NormalizeImage(Mat & image)
 {
-	Scalar mean, stddev;
-	meanStdDev(image, mean, stddev);
-	image = (image - mean) / stddev[0];
+    Scalar mean, stddev;
+    meanStdDev(image, mean, stddev);
+    image = (image - mean) / stddev[0];
 }
 
 vector < Mat > getNormalizedDescriptorField(const Mat & im)
 {
-	Mat dx, dy;
-	ComputeImageDerivatives(im, dx, dy);
-	assert(dx.isContinuous());
-	assert(dy.isContinuous());
+    Mat dx, dy;
+    ComputeImageDerivatives(im, dx, dy);
+    assert(dx.isContinuous());
+    assert(dy.isContinuous());
 
-	Size imSize = im.size();
-	Mat dxPos(imSize, CV_32F, Scalar(0));
-	Mat dxNeg(imSize, CV_32F, Scalar(0));
-	Mat dyPos(imSize, CV_32F, Scalar(0));
-	Mat dyNeg(imSize, CV_32F, Scalar(0));
+    Size imSize = im.size();
+    Mat dxPos(imSize, CV_32F, Scalar(0));
+    Mat dxNeg(imSize, CV_32F, Scalar(0));
+    Mat dyPos(imSize, CV_32F, Scalar(0));
+    Mat dyNeg(imSize, CV_32F, Scalar(0));
 
-	float dxPixel, dyPixel;
+    float dxPixel, dyPixel;
 
-	for (int iRow(0); iRow < im.rows; ++iRow) {
-		for (int iCol(0); iCol < im.cols; ++iCol) {
-			dxPixel = ((float *)dx.data)[dx.cols * iRow + iCol];
-			dyPixel = ((float *)dy.data)[dx.cols * iRow + iCol];
+    for (int iRow(0); iRow < im.rows; ++iRow) {
+        for (int iCol(0); iCol < im.cols; ++iCol) {
+            dxPixel = ((float *)dx.data)[dx.cols * iRow + iCol];
+            dyPixel = ((float *)dy.data)[dx.cols * iRow + iCol];
 
-			if (dxPixel > 0)
-				((float *)dxPos.data)[dx.cols * iRow + iCol] = 10 * dxPixel;	//10 is just a factor for numerical stability, with no particular meaning
-			else
-				((float *)dxNeg.data)[dx.cols * iRow + iCol] = -10 * dxPixel;
+            if (dxPixel > 0)
+                ((float *)dxPos.data)[dx.cols * iRow + iCol] = 10 * dxPixel;    //10 is just a factor for numerical stability, with no particular meaning
+            else
+                ((float *)dxNeg.data)[dx.cols * iRow + iCol] = -10 * dxPixel;
 
-			if (dyPixel > 0)
-				((float *)dyPos.data)[dx.cols * iRow + iCol] = 10 * dyPixel;
-			else
-				((float *)dyNeg.data)[dx.cols * iRow + iCol] = -10 * dyPixel;
-		}
-	}
-	vector < Mat > channels;
-	channels.push_back(dxPos);
-	channels.push_back(dxNeg);
-	channels.push_back(dyPos);
-	channels.push_back(dyNeg);
+            if (dyPixel > 0)
+                ((float *)dyPos.data)[dx.cols * iRow + iCol] = 10 * dyPixel;
+            else
+                ((float *)dyNeg.data)[dx.cols * iRow + iCol] = -10 * dyPixel;
+        }
+    }
+    vector < Mat > channels;
+    channels.push_back(dxPos);
+    channels.push_back(dxNeg);
+    channels.push_back(dyPos);
+    channels.push_back(dyNeg);
 
-	//return channels;
-	for (uint i = 0; i < channels.size(); ++i)
-		NormalizeImage(channels[i]);
+    //return channels;
+    for (uint i = 0; i < channels.size(); ++i)
+        NormalizeImage(channels[i]);
 
-	return channels;
+    return channels;
 }
 
 TILDEobjects getTILDEObject(const string & name, bool useApprox, bool useDescriptorField)
 {
-	TILDEobjects res;
-	vector<float> parameters;
+    TILDEobjects res;
+    vector<float> parameters;
 
-	if (useApprox) {
-		res = getTILDEApproxObjects(name, &parameters);
-	} else {
-		res.nonApprox_filters = getTILDENonApproxFilters(name, &parameters);
-	}
+    if (useApprox) {
+        res = getTILDEApproxObjects(name, &parameters);
+    } else {
+        res.nonApprox_filters = getTILDENonApproxFilters(name, &parameters);
+    }
 
-	// cout<<parameters.size()<<" and "<<parameters[4]<<endl;
+    // cout<<parameters.size()<<" and "<<parameters[4]<<endl;
 
-	res.name = name;
-	res.isApprox = useApprox;
-	res.useDescriptorField = useDescriptorField;
-	res.parameters = parameters;
+    res.name = name;
+    res.isApprox = useApprox;
+    res.useDescriptorField = useDescriptorField;
+    res.parameters = parameters;
 
-	return res;
+    return res;
 }
 
 TILDEobjects getTILDEApproxObjects(const string & name, void *_p)
 {
-	TILDEobjects res;
+    TILDEobjects res;
 
-	vector < float >*param = (vector < float >*)_p;
+    vector < float >*param = (vector < float >*)_p;
 
-	std::ifstream fic(name, ios::in);
-	bool isOpen = fic.is_open();
-	if (!isOpen) {
-		LOGE("Cannot open filter");
-	}
+    std::ifstream fic(name, ios::in);
+    bool isOpen = fic.is_open();
+    if (!isOpen) {
+        LOGE("Cannot open filter");
+    }
 
-	std::string lineread;
-	std::vector < std::string > tokens;
+    std::string lineread;
+    std::vector < std::string > tokens;
 
-	//get parameters
-	//load param 1st lines
-	getline(fic, lineread);//Load
-	tokens.clear();
-	Tokenize(lineread, tokens);
+    //get parameters
+    //load param 1st lines
+    getline(fic, lineread);//Load
+    tokens.clear();
+    Tokenize(lineread, tokens);
 
-	//LOGD("the line is %s",lineread.c_str());
+    //LOGD("the line is %s",lineread.c_str());
 
-	if (param != NULL) {	//load param 1st lines
-		for (int i = 0; i < tokens.size(); i++) {
-			param->push_back(stof(delSpaces(tokens[i])));
-		}
-	} else {		// just push it on the parameters
-		for (int i = 0; i < tokens.size(); i++) {
-			res.parameters.push_back(stof(delSpaces(tokens[i])));
-		}
-	}
-	//=---------------------
+    if (param != NULL) {    //load param 1st lines
+        for (int i = 0; i < tokens.size(); i++) {
+            param->push_back(stof(delSpaces(tokens[i])));
+        }
+    } else {        // just push it on the parameters
+        for (int i = 0; i < tokens.size(); i++) {
+            res.parameters.push_back(stof(delSpaces(tokens[i])));
+        }
+    }
+    //=---------------------
 
-	//start processing...
-	//load param 2sd lines
-	getline(fic, lineread);
+    //start processing...
+    //load param 2sd lines
+    getline(fic, lineread);
 
-	//LOGD("the line is %s",lineread.c_str());
+    //LOGD("the line is %s",lineread.c_str());
 
-	tokens.clear();
-	Tokenize(lineread, tokens);
-	if (tokens.size() != 5) {
-		LOGE("Filter not compatible");
+    tokens.clear();
+    Tokenize(lineread, tokens);
+    if (tokens.size() != 5) {
+        LOGE("Filter not compatible");
 
-	}
-	int nbMax = stoi(delSpaces(tokens[0]));
-	int nbSum = stoi(delSpaces(tokens[1]));
-	int nbOriginalFilters = nbMax * nbSum;
-	int nbApproximatedFilters = stoi(delSpaces(tokens[2]));
-	int nbChannels = stoi(delSpaces(tokens[3]));
-	int sizeFilters = stoi(delSpaces(tokens[4]));
+    }
+    int nbMax = stoi(delSpaces(tokens[0]));
+    int nbSum = stoi(delSpaces(tokens[1]));
+    int nbOriginalFilters = nbMax * nbSum;
+    int nbApproximatedFilters = stoi(delSpaces(tokens[2]));
+    int nbChannels = stoi(delSpaces(tokens[3]));
+    int sizeFilters = stoi(delSpaces(tokens[4]));
 
-	if (param != NULL)
-	{
-		param->push_back(nbMax);
-		param->push_back(nbSum);
-		param->push_back(nbApproximatedFilters);
-		param->push_back(nbChannels);
-		param->push_back(sizeFilters);
-		res.parameters = *param;
-	} else {
-		res.parameters.push_back(nbMax);//0
-		res.parameters.push_back(nbSum);//1
-		res.parameters.push_back(nbApproximatedFilters);//2
-		res.parameters.push_back(nbChannels);//3
-		res.parameters.push_back(sizeFilters);
-	}
-	//=--------------------
-
-
-	//get bias
-	getline(fic, lineread);
-	tokens.clear();
-	Tokenize(lineread, tokens);
-	if (tokens.size() != nbOriginalFilters) {
-		LOGE("Wrong number of cascades");
-	}
-	//bias
-	res.bias = vector < float >(nbOriginalFilters);
-	for (int i = 0; i < tokens.size(); i++)
-		res.bias[i] = stof(delSpaces(tokens[i]));
+    if (param != NULL)
+    {
+        param->push_back(nbMax);
+        param->push_back(nbSum);
+        param->push_back(nbApproximatedFilters);
+        param->push_back(nbChannels);
+        param->push_back(sizeFilters);
+        res.parameters = *param;
+    } else {
+        res.parameters.push_back(nbMax);//0
+        res.parameters.push_back(nbSum);//1
+        res.parameters.push_back(nbApproximatedFilters);//2
+        res.parameters.push_back(nbChannels);//3
+        res.parameters.push_back(sizeFilters);
+    }
+    //=--------------------
 
 
-	//coeffs
-	res.coeffs = vector < vector < float >>(nbOriginalFilters,
-			vector <
-					float >(nbApproximatedFilters * nbChannels));
-	int row = 0;
-	while (getline(fic, lineread)) {
-		tokens.clear();
-		Tokenize(lineread, tokens);
-		for (int i = 0; i < nbApproximatedFilters * nbChannels; i++)
-			res.coeffs[row][i] = stof(delSpaces(tokens[i]));
+    //get bias
+    getline(fic, lineread);
+    tokens.clear();
+    Tokenize(lineread, tokens);
+    if (tokens.size() != nbOriginalFilters) {
+        LOGE("Wrong number of cascades");
+    }
+    //bias
+    res.bias = vector < float >(nbOriginalFilters);
+    for (int i = 0; i < tokens.size(); i++)
+        res.bias[i] = stof(delSpaces(tokens[i]));
 
-		if (++row == nbOriginalFilters)
-			break;
-	}
-	//-------------
 
-	//filters
-	res.filters = vector < Mat > (nbApproximatedFilters * nbChannels * 2,
-	                              Mat(1, sizeFilters, CV_32FC1));
-	row = 0;
-	while (getline(fic, lineread)) {
-		tokens.clear();
-		Tokenize(lineread, tokens);
+    //coeffs
+    res.coeffs = vector < vector < float >>(nbOriginalFilters, vector < float >(nbApproximatedFilters * nbChannels));
+    int row = 0;
+    while (getline(fic, lineread)) {
+        tokens.clear();
+        Tokenize(lineread, tokens);
+        for (int i = 0; i < nbApproximatedFilters * nbChannels; i++)
+            res.coeffs[row][i] = stof(delSpaces(tokens[i]));
 
-		vector < float >r(sizeFilters);
-		for (int i = 0; i < sizeFilters; i++)
-			r[i] = stof(delSpaces(tokens[i]));
+        if (++row == nbOriginalFilters)
+            break;
+    }
+    //-------------
 
-		res.filters[row] = Mat(r).clone();
+    //filters
+    res.filters = vector < Mat > (nbApproximatedFilters * nbChannels * 2, Mat(1, sizeFilters, CV_32FC1));
+    row = 0;
+    while (getline(fic, lineread)) {
+        tokens.clear();
+        Tokenize(lineread, tokens);
 
-		if (++row == nbApproximatedFilters * nbChannels * 2)
-			break;
-	}
+        vector < float >r(sizeFilters);
+        for (int i = 0; i < sizeFilters; i++)
+            r[i] = stof(delSpaces(tokens[i]));
 
-	return res;
+        res.filters[row] = Mat(r).clone();
+
+        if (++row == nbApproximatedFilters * nbChannels * 2)
+            break;
+    }
+
+    return res;
 }
 
 
